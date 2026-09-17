@@ -31,4 +31,17 @@ final class ComponentTest extends TestCase
 
         (new CounterComponent())->callAction('missing');
     }
+
+    public function test_view_data_exposes_public_properties_and_errors(): void
+    {
+        $component = new CounterComponent();
+        $component->count = 7;
+        $component->setErrorBag(['count' => ['too high']]);
+
+        $data = $component->viewData();
+
+        $this->assertSame(7, $data['count']);
+        $this->assertSame('nope', $data['secret']);
+        $this->assertSame(['count' => ['too high']], $data['errors']);
+    }
 }

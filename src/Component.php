@@ -18,6 +18,8 @@ abstract class Component
 {
     protected string $id = '';
 
+    private static ?self $rendering = null;
+
     /** @var list<string> */
     protected array $tracked = [];
 
@@ -62,6 +64,27 @@ abstract class Component
         $this->id = $id;
     }
 
+    public static function current(): ?self
+    {
+        return self::$rendering;
+    }
+
+    /**
+     * @template T
+     * @param callable(): T $callback
+     * @return T
+     */
+    public static function whileRendering(self $component, callable $callback): mixed
+    {
+        $previous = self::$rendering;
+        self::$rendering = $component;
+        try {
+            return $callback();
+        } finally {
+            self::$rendering = $previous;
+        }
+    }
+
     public function mount(): void
     {
         //
@@ -87,7 +110,37 @@ abstract class Component
         //
     }
 
-    abstract public function render(): string;
+    /**
+     * Return inline HTML, an Odo view name, or a Response from view().
+     *
+     * @return string|\Phaseolies\Http\Response
+     */
+    abstract public function render(): mixed;
+
+    /**
+     * Public properties (and error bag) available to Odo views.
+     *
+     * @return array<string, mixed>
+     */
+    public function viewData(): array
+    {
+        $data = [];
+        $ref = new ReflectionClass($this);
+
+        foreach ($ref->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
+            if ($property->isStatic() || $property->getName() === 'id') {
+                continue;
+            }
+            if (!$property->isInitialized($this)) {
+                continue;
+            }
+            $data[$property->getName()] = $property->getValue($this);
+        }
+
+        $data['errors'] = $this->getErrorBag();
+
+        return $data;
+    }
 
     /**
      * @return array<string, mixed>

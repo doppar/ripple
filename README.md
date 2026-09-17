@@ -38,6 +38,8 @@ Load the client:
 php pool make:ripple Counter
 ```
 
+Creates `src/Ripple/Counter.php` and `templates/views/ripple/counter.odo.php`.
+
 ```php
 <?php
 
@@ -56,17 +58,23 @@ class Counter extends Component
         $this->count++;
     }
 
-    public function render(): string
+    public function render(): mixed
     {
-        return <<<HTML
-            <div>
-                <p>Count: {$this->count}</p>
-                <button type="button" ripple:call="increment">+</button>
-            </div>
-        HTML;
+        return view('ripple.counter');
+        // or: return 'ripple.counter';
+        // or inline HTML: return '<div>...</div>';
     }
 }
 ```
+
+```odo
+<div>
+    <p>Count: [[ $count ]]</p>
+    <button type="button" ripple:call="increment">+</button>
+</div>
+```
+
+Public properties are available in the Odo view automatically. Use `--inline` to keep markup in the PHP class.
 
 ```php
 [[! \Doppar\Ripple\Facade\Ripple::mount(\App\Ripple\Counter::class) !]]

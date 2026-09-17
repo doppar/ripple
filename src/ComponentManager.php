@@ -248,27 +248,45 @@ final class ComponentManager
 
     private function renderHtml(Component $instance): string
     {
-        $out = $instance->render();
-        // Odo view name: no HTML tags and looks like a path
-        if ($out !== '' && !str_contains($out, '<') && function_exists('view')) {
-            try {
-                $response = view($out, array_merge($instance->getState(), [
-                    'errors' => $instance->getErrorBag(),
-                    'this' => $instance,
-                ]));
-                if (is_object($response) && method_exists($response, 'getBody')) {
-                    $body = $response->getBody();
-                    return is_string($body) ? $body : (string) $response;
-                }
-                if (is_object($response) && method_exists($response, '__toString')) {
-                    return (string) $response;
-                }
-            } catch (\Throwable) {
-                // fall through — treat as raw HTML string
+        return Component::whileRendering($instance, function () use ($instance) {
+            $out = $instance->render();
+
+            if ($out instanceof \Phaseolies\Http\Response) {
+                return $this->htmlFromViewResponse($instance, $out);
             }
+
+            if (!is_string($out)) {
+                return (string) $out;
+            }
+
+            // Odo view name (e.g. "ripple.components.counter") — no HTML tags
+            if ($out !== '' && !preg_match('/[<>]/', $out) && function_exists('view')) {
+                $response = view($out, $instance->viewData());
+
+                return (string) ($response->getBody() ?? '');
+            }
+
+            return $out;
+        });
+    }
+
+    private function htmlFromViewResponse(Component $instance, \Phaseolies\Http\Response $response): string
+    {
+        // Body already includes public props when rendered under whileRendering()
+        $body = $response->getBody();
+        if (is_string($body) && $body !== '') {
+            return $body;
         }
 
-        return $out;
+        $original = $response->getOriginal();
+        if (is_array($original) && isset($original['view']) && is_string($original['view']) && function_exists('view')) {
+            $extra = is_array($original['data'] ?? null) ? $original['data'] : [];
+            $fresh = view($original['view'], array_merge($instance->viewData(), $extra));
+
+            return (string) ($fresh->getBody() ?? '');
+        }
+
+        return '';
     }
 
     /**

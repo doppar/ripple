@@ -7,6 +7,9 @@ use Doppar\Ripple\Console\CleanupTemporaryFilesCommand;
 use Doppar\Ripple\Console\MakeRippleCommand;
 use Doppar\Ripple\FileUpload\FileUploadService;
 use Doppar\Ripple\State\StateSigner;
+use Doppar\Ripple\Support\RippleViewController;
+use Doppar\Ripple\Support\ViewCache;
+use Phaseolies\Http\Controllers\Controller;
 use Phaseolies\Launchers\PackageServiceLauncher;
 
 class RippleLauncher extends PackageServiceLauncher
@@ -24,6 +27,9 @@ class RippleLauncher extends PackageServiceLauncher
 
         $this->mergeConfig(__DIR__ . '/../config/ripple.php', 'ripple');
 
+        // view() resolves Controller — merge Ripple public props while a component renders
+        $this->app->singleton(Controller::class, fn () => new RippleViewController());
+
         $this->app->singleton(StateSigner::class, fn () => StateSigner::fromConfig());
         $this->app->singleton(FileUploadService::class, fn () => new FileUploadService());
         $this->app->singleton(ComponentManager::class, function () {
@@ -33,6 +39,8 @@ class RippleLauncher extends PackageServiceLauncher
 
     public function launch(): void
     {
+        ViewCache::flush();
+
         $this->loadRoutes(__DIR__ . '/../routes/web.php');
         $this->loadViews(__DIR__ . '/../resources/views', 'ripple');
 
