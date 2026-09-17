@@ -7,7 +7,7 @@ final class Config
 {
     public static function get(string $key, mixed $default = null): mixed
     {
-        if (!function_exists('config')) {
+        if (! function_exists('config')) {
             return $default;
         }
 

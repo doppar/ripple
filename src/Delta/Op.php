@@ -27,7 +27,8 @@ final class Op
         public readonly string $op,
         public readonly string $path,
         public readonly array $data = [],
-    ) {}
+    ) {
+    }
 
     /**
      * Compact wire form: o=op, p=path, plus short data keys.

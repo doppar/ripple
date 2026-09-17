@@ -17,7 +17,7 @@ final class IsolatedViewEngine extends Controller
      */
     public function fetch($name, array $data = []): string
     {
-        if (!is_string($name) || $name === '') {
+        if (! is_string($name) || $name === '') {
             throw new \InvalidArgumentException('View name must be a non-empty string');
         }
 
@@ -44,7 +44,7 @@ final class IsolatedViewEngine extends Controller
 
             return self::$cache[$cacheKey] = $result;
         } finally {
-            if (!empty($this->renderStack)) {
+            if (! empty($this->renderStack)) {
                 array_pop($this->renderStack);
             }
         }

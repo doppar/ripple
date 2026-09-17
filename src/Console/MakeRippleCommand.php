@@ -27,7 +27,7 @@ class MakeRippleCommand extends Command
                 return Command::FAILURE;
             }
 
-            if (!$inline && file_exists($viewPath)) {
+            if (! $inline && file_exists($viewPath)) {
                 $this->displayError('Ripple view already exists at:');
                 $this->line('<fg=white>' . $this->relativePath($viewPath) . '</>');
 
@@ -35,7 +35,7 @@ class MakeRippleCommand extends Command
             }
 
             $directoryPath = dirname($filePath);
-            if (!is_dir($directoryPath)) {
+            if (! is_dir($directoryPath)) {
                 mkdir($directoryPath, 0755, true);
             }
 
@@ -43,9 +43,9 @@ class MakeRippleCommand extends Command
             $this->displaySuccess('Ripple component created:');
             $this->line('<fg=white>' . $this->relativePath($filePath) . '</>');
 
-            if (!$inline) {
+            if (! $inline) {
                 $viewDir = dirname($viewPath);
-                if (!is_dir($viewDir)) {
+                if (! is_dir($viewDir)) {
                     mkdir($viewDir, 0755, true);
                 }
                 file_put_contents($viewPath, $this->viewStub($className));

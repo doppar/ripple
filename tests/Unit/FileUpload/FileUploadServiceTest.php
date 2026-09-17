@@ -29,8 +29,10 @@ final class FileUploadServiceTest extends TestCase
         self::assertNotFalse($tmp);
         file_put_contents($tmp, 'hello-ripple');
 
-        $file = new class($tmp) {
-            public function __construct(private string $path) {}
+        $file = new class ($tmp) {
+            public function __construct(private string $path)
+            {
+            }
 
             public function getClientOriginalName(): string
             {
@@ -65,8 +67,10 @@ final class FileUploadServiceTest extends TestCase
         self::assertNotFalse($tmp);
         file_put_contents($tmp, 'x');
 
-        $file = new class($tmp) {
-            public function __construct(private string $path) {}
+        $file = new class ($tmp) {
+            public function __construct(private string $path)
+            {
+            }
 
             public function getClientOriginalName(): string
             {

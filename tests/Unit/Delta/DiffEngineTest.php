@@ -38,7 +38,7 @@ final class DiffEngineTest extends TestCase
 
         $ops = array_values(array_filter(
             $this->diff->diff($old, $new)->toArray(),
-            static fn (array $o) => ($o['o'] ?? '') === Op::UPDATE_ATTRS
+            static fn (array $o) => ($o['o'] ?? '') === Op::UPDATE_ATTRS,
         ));
 
         $this->assertNotEmpty($ops);
@@ -52,7 +52,7 @@ final class DiffEngineTest extends TestCase
 
         $ops = array_values(array_filter(
             $this->diff->diff($old, $new)->toArray(),
-            static fn (array $o) => ($o['o'] ?? '') === Op::REMOVE
+            static fn (array $o) => ($o['o'] ?? '') === Op::REMOVE,
         ));
 
         $this->assertNotEmpty($ops);
@@ -72,7 +72,7 @@ final class DiffEngineTest extends TestCase
 
         $ops = array_values(array_filter(
             $this->diff->diff($old, $new)->toArray(),
-            static fn (array $o) => ($o['o'] ?? '') === Op::INSERT
+            static fn (array $o) => ($o['o'] ?? '') === Op::INSERT,
         ));
 
         $this->assertNotEmpty($ops);
@@ -89,7 +89,7 @@ final class DiffEngineTest extends TestCase
         $this->assertTrue(
             in_array(Op::REPLACE, $kinds, true)
             || in_array(Op::REMOVE, $kinds, true)
-            || in_array(Op::INSERT, $kinds, true)
+            || in_array(Op::INSERT, $kinds, true),
         );
     }
 }

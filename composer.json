@@ -24,6 +24,8 @@
         "doppar/framework": "4.*"
     },
     "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.75",
+        "phpstan/phpstan": "^2.1",
         "phpunit/phpunit": "^13.2"
     },
     "autoload": {
@@ -38,14 +40,30 @@
     },
     "scripts": {
         "test": "phpunit",
+        "analyse": "phpstan analyse --memory-limit=1G -c phpstan.neon.dist",
+        "cs-check": "php-cs-fixer fix --dry-run --diff --ansi",
+        "cs-fix": "php-cs-fixer fix --ansi",
         "build": "npm run build",
         "prepublish-assets": [
             "@build"
         ]
     },
+    "scripts-descriptions": {
+        "test": "Run the PHPUnit test suite",
+        "analyse": "Run PHPStan static analysis",
+        "cs-check": "Check coding style with PHP CS Fixer (dry-run)",
+        "cs-fix": "Fix coding style with PHP CS Fixer",
+        "build": "Build the browser client bundle"
+    },
     "extra": {
         "branch-alias": {
             "dev-main": "1.x-dev"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "phpstan/extension-installer": true
         }
     },
     "minimum-stability": "dev",

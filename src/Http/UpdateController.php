@@ -10,7 +10,9 @@ use Phaseolies\Http\Response\JsonResponse;
 
 final class UpdateController
 {
-    public function __construct(private readonly ComponentManager $manager) {}
+    public function __construct(private readonly ComponentManager $manager)
+    {
+    }
 
     public function handle(Request $request): JsonResponse
     {
@@ -78,7 +80,7 @@ final class UpdateController
     private function jsonBody(Request $request): array
     {
         $raw = $request->getContent();
-        if (!is_string($raw) || $raw === '') {
+        if (! is_string($raw) || $raw === '') {
             return [];
         }
         $decoded = json_decode($raw, true);

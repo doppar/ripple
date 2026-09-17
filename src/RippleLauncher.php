@@ -2,7 +2,6 @@
 
 namespace Doppar\Ripple;
 
-use Doppar\Ripple\ComponentManager;
 use Doppar\Ripple\Console\CleanupTemporaryFilesCommand;
 use Doppar\Ripple\Console\MakeRippleCommand;
 use Doppar\Ripple\FileUpload\FileUploadService;
@@ -69,17 +68,17 @@ class RippleLauncher extends PackageServiceLauncher
     private function ensureClientAsset(): void
     {
         $source = $this->clientDistPath();
-        if (!is_file($source)) {
+        if (! is_file($source)) {
             return;
         }
 
         $target = public_path('vendor/ripple/ripple.min.js');
         $dir = dirname($target);
-        if (!is_dir($dir)) {
+        if (! is_dir($dir)) {
             @mkdir($dir, 0775, true);
         }
 
-        if (!is_file($target) || filemtime($source) > filemtime($target)) {
+        if (! is_file($target) || filemtime($source) > filemtime($target)) {
             @copy($source, $target);
         }
     }

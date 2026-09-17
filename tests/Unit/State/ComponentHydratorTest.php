@@ -44,6 +44,7 @@ final class ComponentHydratorTest extends TestCase
     public function test_mount_hydrates_query_string_before_mount(): void
     {
         $harness = new AppHarness(sys_get_temp_dir() . '/ripple-hyd-' . bin2hex(random_bytes(4)));
+
         try {
             $harness->bindQuery(['filter' => 'open']);
             $hydrator = new ComponentHydrator(new StateSigner('k'));

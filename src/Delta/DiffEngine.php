@@ -32,7 +32,7 @@ final class DiffEngine
             return;
         }
 
-        if ($old !== null && $new === null) {
+        if ($new === null) {
             $patch->add(new Op(Op::REMOVE, $path));
 
             return;
@@ -84,13 +84,13 @@ final class DiffEngine
         $delta = [];
 
         foreach ($new as $key => $value) {
-            if (!array_key_exists($key, $old) || $old[$key] !== $value) {
+            if (! array_key_exists($key, $old) || $old[$key] !== $value) {
                 $delta[$key] = $value;
             }
         }
 
         foreach ($old as $key => $_) {
-            if (!array_key_exists($key, $new)) {
+            if (! array_key_exists($key, $new)) {
                 $delta[$key] = null;
             }
         }
@@ -103,7 +103,7 @@ final class DiffEngine
 
     private function parentPath(string $path): string
     {
-        if ($path === '' || !str_contains($path, '.')) {
+        if ($path === '' || ! str_contains($path, '.')) {
             return '';
         }
 

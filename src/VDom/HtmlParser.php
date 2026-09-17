@@ -24,7 +24,7 @@ final class HtmlParser
         libxml_use_internal_errors($previous);
 
         $root = $dom->getElementById('__ripple_root__');
-        if (!$root) {
+        if (! $root) {
             return new Node('#text', text: $html);
         }
 
@@ -54,7 +54,7 @@ final class HtmlParser
             return new Node('#text', text: $text);
         }
 
-        if (!$dom instanceof \DOMElement) {
+        if (! $dom instanceof \DOMElement) {
             return null;
         }
 

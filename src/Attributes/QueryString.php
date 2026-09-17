@@ -11,5 +11,6 @@ final class QueryString
         public readonly ?string $as = null,
         public readonly bool $history = true,
         public readonly bool $keep = false,
-    ) {}
+    ) {
+    }
 }

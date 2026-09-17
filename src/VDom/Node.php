@@ -14,7 +14,8 @@ final class Node
         public array $children = [],
         public ?string $text = null,
         public ?string $key = null,
-    ) {}
+    ) {
+    }
 
     public function isText(): bool
     {
@@ -23,6 +24,6 @@ final class Node
 
     public function isElement(): bool
     {
-        return !$this->isText();
+        return ! $this->isText();
     }
 }

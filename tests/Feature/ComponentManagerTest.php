@@ -67,8 +67,9 @@ final class ComponentManagerTest extends TestCase
     public function test_scripts_emit_metas(): void
     {
         $harness = new AppHarness(sys_get_temp_dir() . '/ripple-scripts-' . bin2hex(random_bytes(4)));
+
         try {
-            $harness->instance('session', new class {
+            $harness->instance('session', new class () {
                 public function get(mixed $key, mixed $default = null): mixed
                 {
                     return $key === '_token' ? 'test-csrf' : $default;
@@ -106,7 +107,7 @@ final class ComponentManagerTest extends TestCase
 
         $setText = array_values(array_filter(
             $result['d'],
-            static fn (array $o) => ($o['o'] ?? '') === Op::SET_TEXT
+            static fn (array $o) => ($o['o'] ?? '') === Op::SET_TEXT,
         ));
         $this->assertNotEmpty($setText);
         $this->assertSame('Count: 1', $setText[0]['v'] ?? null);

@@ -1,0 +1,11 @@
+parameters:
+    level: 5
+    paths:
+        - src
+    tmpDir: .phpstan.cache
+    treatPhpDocTypesAsCertain: false
+    ignoreErrors:
+        -
+            # Consumed by host apps; not referenced inside this package.
+            identifier: trait.unused
+            path: src/Traits/HasPagination.php

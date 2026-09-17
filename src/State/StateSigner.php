@@ -6,7 +6,9 @@ use Doppar\Ripple\Support\Config;
 
 final class StateSigner
 {
-    public function __construct(private readonly string $key) {}
+    public function __construct(private readonly string $key)
+    {
+    }
 
     public static function fromConfig(): self
     {

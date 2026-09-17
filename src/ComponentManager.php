@@ -46,7 +46,12 @@ final class ComponentManager
         $class = $this->resolveClass($component);
 
         if ($this->hydrator->isLazy($class)) {
-            return $this->mountLazy($class, $params, $this->hydrator->lazyAttribute($class));
+            $lazy = $this->hydrator->lazyAttribute($class);
+            if ($lazy === null) {
+                throw new \LogicException("Component [{$class}] is marked lazy but has no #[Lazy] attribute.");
+            }
+
+            return $this->mountLazy($class, $params, $lazy);
         }
 
         $instance = $this->hydrator->mount($class, $params);
@@ -233,10 +238,10 @@ final class ComponentManager
      * @param class-string<Component> $class
      * @param array<string, mixed> $params
      */
-    private function mountLazy(string $class, array $params, ?Lazy $lazy): string
+    private function mountLazy(string $class, array $params, Lazy $lazy): string
     {
         $id = bin2hex(random_bytes(8));
-        $placeholder = $lazy?->placeholder ?? '<div class="ripple-lazy-placeholder" style="padding:1rem;opacity:.6">Loading…</div>';
+        $placeholder = $lazy->placeholder ?? '<div class="ripple-lazy-placeholder" style="padding:1rem;opacity:.6">Loading…</div>';
         $paramsJson = htmlspecialchars(json_encode($params, JSON_THROW_ON_ERROR), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         return sprintf(
@@ -244,7 +249,7 @@ final class ComponentManager
             htmlspecialchars($id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
             htmlspecialchars($class, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
             $paramsJson,
-            $placeholder
+            $placeholder,
         );
     }
 
@@ -257,12 +262,12 @@ final class ComponentManager
                 return $this->htmlFromViewResponse($instance, $out);
             }
 
-            if (!is_string($out)) {
+            if (! is_string($out)) {
                 return (string) $out;
             }
 
             // Odo view name (e.g. "ripple.components.counter") — no HTML tags
-            if ($out !== '' && !preg_match('/[<>]/', $out) && function_exists('view')) {
+            if ($out !== '' && ! preg_match('/[<>]/', $out) && function_exists('view')) {
                 $response = view($out, $instance->viewData());
 
                 return (string) ($response->getBody() ?? '');
@@ -312,7 +317,7 @@ final class ComponentManager
             htmlspecialchars($fingerprint, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
             htmlspecialchars($signature, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
             htmlspecialchars(json_encode($eventListeners, JSON_THROW_ON_ERROR), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-            $html
+            $html,
         );
     }
 
@@ -330,12 +335,12 @@ final class ComponentManager
             default => false,
         };
 
-        if (!$shouldVerify) {
+        if (! $shouldVerify) {
             return;
         }
 
         $signature = (string) ($payload['x'] ?? '');
-        if ($signature === '' || !$this->signer->verify($state, $id, $signature)) {
+        if ($signature === '' || ! $this->signer->verify($state, $id, $signature)) {
             throw new \RuntimeException('Invalid Ripple state signature.');
         }
     }
@@ -365,7 +370,7 @@ final class ComponentManager
             'x' => $this->signer->sign($state, $cid),
         ], $extra);
 
-        if (!array_key_exists('e', $payload)) {
+        if (! array_key_exists('e', $payload)) {
             $payload['e'] = $instance->getErrorBag();
         }
 

@@ -11,7 +11,9 @@ use Phaseolies\Http\Response\JsonResponse;
 
 final class UploadController
 {
-    public function __construct(private readonly FileUploadService $uploads) {}
+    public function __construct(private readonly FileUploadService $uploads)
+    {
+    }
 
     public function upload(Request $request): JsonResponse
     {

@@ -78,6 +78,7 @@ abstract class Component
     {
         $previous = self::$rendering;
         self::$rendering = $component;
+
         try {
             return $callback();
         } finally {
@@ -131,7 +132,7 @@ abstract class Component
             if ($property->isStatic() || $property->getName() === 'id') {
                 continue;
             }
-            if (!$property->isInitialized($this)) {
+            if (! $property->isInitialized($this)) {
                 continue;
             }
             $data[$property->getName()] = $property->getValue($this);
@@ -153,7 +154,7 @@ abstract class Component
             if (in_array($property, $this->hidden, true)) {
                 continue;
             }
-            if (!property_exists($this, $property)) {
+            if (! property_exists($this, $property)) {
                 continue;
             }
             $ref = new ReflectionProperty($this, $property);
@@ -171,14 +172,14 @@ abstract class Component
     public function hydrate(array $state): void
     {
         foreach ($state as $key => $value) {
-            if (!property_exists($this, $key)) {
+            if (! property_exists($this, $key)) {
                 continue;
             }
             if (in_array($key, $this->hidden, true) || in_array($key, $this->computed, true)) {
                 continue;
             }
             $property = new ReflectionProperty($this, $key);
-            if (!$property->isPublic() || $property->isStatic()) {
+            if (! $property->isPublic() || $property->isStatic()) {
                 continue;
             }
             $property->setValue($this, $this->castIncoming($property, $value));
@@ -189,7 +190,7 @@ abstract class Component
 
     public function updateProperty(string $property, mixed $value): void
     {
-        if (!property_exists($this, $property)) {
+        if (! property_exists($this, $property)) {
             throw new \InvalidArgumentException("Property [{$property}] does not exist on " . static::class);
         }
         if (in_array($property, $this->hidden, true) || in_array($property, $this->computed, true)) {
@@ -220,7 +221,7 @@ abstract class Component
     private function castIncoming(ReflectionProperty $ref, mixed $value): mixed
     {
         $type = $ref->getType();
-        if (!$type instanceof ReflectionNamedType || !$type->isBuiltin()) {
+        if (! $type instanceof ReflectionNamedType || ! $type->isBuiltin()) {
             return $value;
         }
 
@@ -259,18 +260,18 @@ abstract class Component
             return null;
         }
 
-        if (!method_exists($this, $action)) {
+        if (! method_exists($this, $action)) {
             throw new \BadMethodCallException("Ripple action [{$action}] does not exist on " . static::class);
         }
 
         $method = new ReflectionMethod($this, $action);
-        if (!$method->isPublic() || $method->isStatic()) {
+        if (! $method->isPublic() || $method->isStatic()) {
             throw new \BadMethodCallException("Ripple action [{$action}] must be public on " . static::class);
         }
 
         if ($method->getAttributes(Invokable::class) === []) {
             throw new \BadMethodCallException(
-                "Ripple action [{$action}] is not invokable. Add #[Invokable] on " . static::class
+                "Ripple action [{$action}] is not invokable. Add #[Invokable] on " . static::class,
             );
         }
 
@@ -412,7 +413,7 @@ abstract class Component
                         $errors[$field][] = $this->messages()["{$field}.min"] ?? "The {$field} must be at least {$min} characters.";
                     }
                 }
-                if ($r === 'email' && $value !== null && $value !== '' && !filter_var((string) $value, FILTER_VALIDATE_EMAIL)) {
+                if ($r === 'email' && $value !== null && $value !== '' && ! filter_var((string) $value, FILTER_VALIDATE_EMAIL)) {
                     $errors[$field][] = $this->messages()["{$field}.email"] ?? "The {$field} must be a valid email.";
                 }
             }
@@ -420,6 +421,7 @@ abstract class Component
 
         if ($errors !== []) {
             $this->errorBag = $errors;
+
             throw new ValidationException($errors);
         }
 
@@ -431,7 +433,7 @@ abstract class Component
     protected function validateOnly(string $field): void
     {
         $rules = $this->rules();
-        if (!isset($rules[$field])) {
+        if (! isset($rules[$field])) {
             return;
         }
 
@@ -451,6 +453,7 @@ abstract class Component
     {
         if ($field === null) {
             $this->errorBag = [];
+
             return;
         }
         unset($this->errorBag[$field]);

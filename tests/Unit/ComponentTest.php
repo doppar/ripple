@@ -89,6 +89,7 @@ final class ComponentTest extends TestCase
     public function test_hydrate_from_query_string(): void
     {
         $harness = new AppHarness(sys_get_temp_dir() . '/ripple-qs-' . bin2hex(random_bytes(4)));
+
         try {
             $harness->bindQuery(['page' => '4', 'filter' => 'open', 'tab' => 'billing']);
             $c = new KitchenSinkComponent();
@@ -104,6 +105,7 @@ final class ComponentTest extends TestCase
     public function test_paginated_hydrate_page_from_query(): void
     {
         $harness = new AppHarness(sys_get_temp_dir() . '/ripple-page-' . bin2hex(random_bytes(4)));
+
         try {
             $harness->bindQuery(['page' => '9']);
             $c = new PaginatedComponent();
@@ -204,6 +206,7 @@ final class ComponentTest extends TestCase
     public function test_validate_required_min_and_custom_messages(): void
     {
         $c = new KitchenSinkComponent();
+
         try {
             $c->callAction('save');
             $this->fail('expected validation');
@@ -224,6 +227,7 @@ final class ComponentTest extends TestCase
     {
         $c = new FormComponent();
         $c->email = 'not-an-email';
+
         try {
             $c->callAction('save');
             $this->fail('expected email validation');
@@ -246,6 +250,7 @@ final class ComponentTest extends TestCase
     public function test_redirect_throws(): void
     {
         $c = new KitchenSinkComponent();
+
         try {
             $c->callAction('leave');
             $this->fail('expected redirect');
@@ -258,6 +263,7 @@ final class ComponentTest extends TestCase
     public function test_redirect_defaults_to_spa(): void
     {
         $c = new FormComponent();
+
         try {
             $c->callAction('goAway');
             $this->fail('expected redirect');
