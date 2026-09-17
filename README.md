@@ -19,13 +19,14 @@ Register the launcher in `runtime/config/app.php`:
 ],
 ```
 
-Optional config publish:
+Optional:
 
 ```bash
 php pool vendor:publish --tag=ripple-config
+php pool vendor:publish --tag=ripple-assets
 ```
 
-Load the client in your layout:
+Load the client:
 
 ```php
 [[! \Doppar\Ripple\Facade\Ripple::scripts() !]]
@@ -33,17 +34,23 @@ Load the client in your layout:
 
 ## Example
 
+```bash
+php pool make:ripple Counter
+```
+
 ```php
 <?php
 
 namespace App\Ripple;
 
+use Doppar\Ripple\Attributes\Invokable;
 use Doppar\Ripple\Component;
 
 class Counter extends Component
 {
     public int $count = 0;
 
+    #[Invokable]
     public function increment(): void
     {
         $this->count++;
@@ -54,80 +61,52 @@ class Counter extends Component
         return <<<HTML
             <div>
                 <p>Count: {$this->count}</p>
-                <button type="button" ripple-call="increment">+</button>
+                <button type="button" ripple:call="increment">+</button>
             </div>
         HTML;
     }
 }
 ```
 
-Mount:
-
 ```php
 [[! \Doppar\Ripple\Facade\Ripple::mount(\App\Ripple\Counter::class) !]]
 ```
 
-### Attributes
+### Directives
 
 | Attribute | Purpose |
 |-----------|---------|
-| `data-ripple` | Root mount (added automatically) |
-| `data-ripple-id` / `data-ripple-name` | Instance identity |
-| `ripple-call="method"` | Call a component method (default event: `click`) |
-| `ripple-on="submit"` | Event that triggers `ripple-call` |
-| `ripple-bind="prop"` | Sync an input value to a component property |
+| `ripple:call="method"` | Call an `#[Invokable]` method (default event: click) |
+| `ripple:on="submit"` | Event that triggers `ripple:call` |
+| `ripple:bind` / `.live` / `.lazy` / `.debounce.N` | Sync input to a public property |
+| `ripple:loading` | Shown while a request is in flight |
+| `ripple:loading.target` | Disabled / busy while loading |
+| `ripple:poll="2s"` | Poll interval (HTTP) |
+| `ripple:poll.call="tick"` | Method polled |
+| `ripple:confirm="…"` | Confirm before call |
+
+Root mount uses `data-ripple` (injected by `mount()`).
 
 ## Update protocol
 
-`POST /ripple/update`
-
-Keys stay short on the wire (`i` id, `n` name, `a` action, `g` args, `s` state, `d` deltas; patch `o` op, `p` path, `v` value).
-
-Request:
-
-```json
-{ "i": "...", "n": "App\\Ripple\\Counter", "a": "increment", "g": [], "s": { "count": 0 } }
-```
-
-Response:
-
-```json
-{ "i": "...", "n": "App\\Ripple\\Counter", "d": [{ "o": "t", "p": "0.0", "v": "Count: 1" }], "s": { "count": 1 } }
-```
-
-Op codes: `t` setText, `u` updateAttrs, `r` replace, `i` insert, `x` remove, `m` reorder.
-
-## Flow
-
-```
-Browser (ripple-call / ripple-bind)
-  -> POST /ripple/update
-  -> ComponentManager (hydrate, action, render)
-  -> DiffEngine (old VDOM vs new VDOM)
-  -> JSON deltas + state
-  -> Client applies patches
-```
-
-## License
-
-MIT
-
-## Tests
-
-PHPUnit. Suites live under `tests/Unit`, `tests/Feature`, and `tests/Integration`.
-
-```bash
-composer install
-composer test
-```
+`POST /ripple/update` uses short keys (`i` id, `n` name, `t` type, `a` action, `g` args, `s` state, `p`/`v` prop update, `d` deltas, `e` validation errors, `rd` redirect).
 
 ## Client assets
-
-Source lives in `resources/js/src`. Build (esbuild, minified IIFE) writes `resources/dist/ripple.min.js`.
 
 ```bash
 npm install
 npm run build
 ```
 
-Run `npm run build` before tagging a release or publishing. Publish / sync uses the dist file (`php pool vendor:publish --tag=ripple-assets`).
+Writes `resources/dist/ripple.min.js`.
+
+## Tests
+
+```bash
+composer install
+composer test
+```
+
+## License
+
+MIT

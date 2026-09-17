@@ -12,7 +12,7 @@ final class ComponentTest extends TestCase
         $component = new CounterComponent();
         $component->count = 3;
 
-        $this->assertSame(['count' => 3], $component->getState());
+        $this->assertSame(['count' => 3, 'secret' => 'nope'], $component->getState());
     }
 
     public function test_hydrate_and_call_action(): void

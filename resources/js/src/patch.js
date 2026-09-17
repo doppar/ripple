@@ -1,4 +1,5 @@
 import { contentRoot } from './dom.js';
+import { handleEvents } from './events.js';
 
 function nodeAt(root, path) {
   if (path === '' || path == null) return root;
@@ -11,16 +12,10 @@ function nodeAt(root, path) {
   return node;
 }
 
-/**
- * Apply compact delta ops (o/p/v/h/a/x) to the mounted component tree.
- * ponytail: minimal applicator (t/u/r/x/i); upgrade path: keyed reorder.
- */
 export function applyPatches(mount, patches) {
   const root = contentRoot(mount);
-
   for (const p of patches || []) {
     const target = nodeAt(root, p.p);
-
     switch (p.o) {
       case 't':
         if (target) target.textContent = p.v ?? '';
@@ -61,7 +56,33 @@ export function applyPatches(mount, patches) {
   }
 }
 
-export function applyResponse(root, data) {
+export function applyResponse(root, data, callAction) {
+  if (data.rd?.u) {
+    if (data.rd.spa !== false) window.location.href = data.rd.u;
+    else window.location.assign(data.rd.u);
+    return;
+  }
+
+  if (data.h && root.hasAttribute('data-ripple-lazy')) {
+    root.removeAttribute('data-ripple-lazy');
+    const wrap = document.createElement('div');
+    wrap.innerHTML = data.h;
+    while (wrap.firstChild) root.appendChild(wrap.firstChild);
+  }
+
   applyPatches(root, data.d);
   if (data.s) root.setAttribute('data-ripple-state', JSON.stringify(data.s));
+  if (data.f) root.setAttribute('data-ripple-f', data.f);
+  if (data.x) root.setAttribute('data-ripple-x', data.x);
+
+  if (data.qs && typeof data.qs === 'object') {
+    const url = new URL(window.location.href);
+    for (const [k, v] of Object.entries(data.qs)) {
+      if (v == null || v === '') url.searchParams.delete(k);
+      else url.searchParams.set(k, String(v));
+    }
+    history.replaceState({}, '', url);
+  }
+
+  handleEvents(root, data, callAction);
 }

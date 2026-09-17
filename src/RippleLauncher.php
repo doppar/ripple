@@ -3,6 +3,10 @@
 namespace Doppar\Ripple;
 
 use Doppar\Ripple\ComponentManager;
+use Doppar\Ripple\Console\CleanupTemporaryFilesCommand;
+use Doppar\Ripple\Console\MakeRippleCommand;
+use Doppar\Ripple\FileUpload\FileUploadService;
+use Doppar\Ripple\State\StateSigner;
 use Phaseolies\Launchers\PackageServiceLauncher;
 
 class RippleLauncher extends PackageServiceLauncher
@@ -20,8 +24,10 @@ class RippleLauncher extends PackageServiceLauncher
 
         $this->mergeConfig(__DIR__ . '/../config/ripple.php', 'ripple');
 
+        $this->app->singleton(StateSigner::class, fn () => StateSigner::fromConfig());
+        $this->app->singleton(FileUploadService::class, fn () => new FileUploadService());
         $this->app->singleton(ComponentManager::class, function () {
-            return new ComponentManager();
+            return new ComponentManager(signer: $this->app->get(StateSigner::class));
         });
     }
 
@@ -38,6 +44,11 @@ class RippleLauncher extends PackageServiceLauncher
                 $dist => public_path('vendor/ripple/ripple.min.js'),
             ], 'ripple-assets');
         }
+
+        $this->commands([
+            MakeRippleCommand::class,
+            CleanupTemporaryFilesCommand::class,
+        ]);
 
         $this->ensureClientAsset();
     }

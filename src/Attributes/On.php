@@ -1,0 +1,11 @@
+<?php
+
+namespace Doppar\Ripple\Attributes;
+
+use Attribute;
+
+#[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
+final class On
+{
+    public function __construct(public readonly string $event) {}
+}

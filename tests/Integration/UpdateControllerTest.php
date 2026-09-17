@@ -11,23 +11,26 @@ use ReflectionProperty;
 
 final class UpdateControllerTest extends TestCase
 {
+    private function requestWith(array $body): Request
+    {
+        $request = new Request();
+        $content = new ReflectionProperty($request, 'content');
+        $content->setValue($request, json_encode($body, JSON_THROW_ON_ERROR));
+
+        return $request;
+    }
+
     public function test_handle_accepts_short_keys_and_returns_deltas(): void
     {
         $controller = new UpdateController(new ComponentManager());
-
-        $request = new Request();
-        $body = json_encode([
+        $response = $controller->handle($this->requestWith([
             'i' => 'int-1',
             'n' => CounterComponent::class,
+            't' => 'a',
             'a' => 'increment',
             'g' => [],
-            's' => ['count' => 4],
-        ], JSON_THROW_ON_ERROR);
-
-        $content = new ReflectionProperty($request, 'content');
-        $content->setValue($request, $body);
-
-        $response = $controller->handle($request);
+            's' => ['count' => 4, 'secret' => 'nope'],
+        ]));
         $payload = $response->getData();
 
         $this->assertIsArray($payload);
@@ -37,27 +40,34 @@ final class UpdateControllerTest extends TestCase
         $this->assertNotEmpty($payload['d']);
     }
 
-    public function test_handle_returns_error_payload_on_unknown_component(): void
+    public function test_unknown_action_bubbles_for_doppar_error_handler(): void
     {
-        $controller = new UpdateController(new ComponentManager());
+        $this->expectException(\BadMethodCallException::class);
+        $this->expectExceptionMessage('decrementt');
 
-        $request = new Request();
-        $body = json_encode([
+        $controller = new UpdateController(new ComponentManager());
+        $controller->handle($this->requestWith([
+            'i' => 'x',
+            'n' => CounterComponent::class,
+            't' => 'a',
+            'a' => 'decrementt',
+            'g' => [],
+            's' => ['count' => 0, 'secret' => 'nope'],
+        ]));
+    }
+
+    public function test_unknown_component_bubbles_for_doppar_error_handler(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Missing\\Component');
+
+        $controller = new UpdateController(new ComponentManager());
+        $controller->handle($this->requestWith([
             'i' => 'x',
             'n' => 'Missing\\Component',
             'a' => null,
             'g' => [],
             's' => [],
-        ], JSON_THROW_ON_ERROR);
-
-        $content = new ReflectionProperty($request, 'content');
-        $content->setValue($request, $body);
-
-        $response = $controller->handle($request);
-
-        $this->assertSame(422, $response->getStatusCode());
-        $payload = $response->getData();
-        $this->assertIsArray($payload);
-        $this->assertArrayHasKey('e', $payload);
+        ]));
     }
 }
