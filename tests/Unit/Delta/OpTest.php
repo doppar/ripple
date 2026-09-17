@@ -34,4 +34,13 @@ final class OpTest extends TestCase
             'a' => ['class' => 'a'],
         ], $op->toArray());
     }
+
+    public function test_remove_and_replace_short_keys(): void
+    {
+        $remove = (new Op(Op::REMOVE, '0.1'))->toArray();
+        $this->assertSame(['o' => 'x', 'p' => '0.1'], $remove);
+
+        $replace = (new Op(Op::REPLACE, '0', ['html' => '<b>x</b>']))->toArray();
+        $this->assertSame(['o' => 'r', 'p' => '0', 'h' => '<b>x</b>'], $replace);
+    }
 }

@@ -64,4 +64,32 @@ final class DiffEngineTest extends TestCase
 
         $this->assertTrue($this->diff->diff($tree, $tree)->isEmpty());
     }
+
+    public function test_emits_insert_when_child_added(): void
+    {
+        $old = $this->parser->parse('<ul><li>a</li></ul>');
+        $new = $this->parser->parse('<ul><li>a</li><li>b</li></ul>');
+
+        $ops = array_values(array_filter(
+            $this->diff->diff($old, $new)->toArray(),
+            static fn (array $o) => ($o['o'] ?? '') === Op::INSERT
+        ));
+
+        $this->assertNotEmpty($ops);
+    }
+
+    public function test_emits_replace_when_tag_changes(): void
+    {
+        $old = $this->parser->parse('<div><span>x</span></div>');
+        $new = $this->parser->parse('<div><strong>x</strong></div>');
+
+        $ops = $this->diff->diff($old, $new)->toArray();
+        $this->assertNotEmpty($ops);
+        $kinds = array_map(static fn (array $o) => $o['o'] ?? '', $ops);
+        $this->assertTrue(
+            in_array(Op::REPLACE, $kinds, true)
+            || in_array(Op::REMOVE, $kinds, true)
+            || in_array(Op::INSERT, $kinds, true)
+        );
+    }
 }

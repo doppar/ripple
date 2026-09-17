@@ -4,7 +4,10 @@ namespace Doppar\Ripple\Tests\Integration;
 
 use Doppar\Ripple\ComponentManager;
 use Doppar\Ripple\Http\UpdateController;
+use Doppar\Ripple\State\StateSigner;
 use Doppar\Ripple\Tests\Fixtures\CounterComponent;
+use Doppar\Ripple\Tests\Fixtures\FormComponent;
+use Doppar\Ripple\Tests\Fixtures\LazyDeskComponent;
 use Doppar\Ripple\Tests\TestCase;
 use Phaseolies\Http\Request;
 use ReflectionProperty;
@@ -20,10 +23,14 @@ final class UpdateControllerTest extends TestCase
         return $request;
     }
 
+    private function controller(): UpdateController
+    {
+        return new UpdateController(new ComponentManager(signer: new StateSigner('ctrl-key')));
+    }
+
     public function test_handle_accepts_short_keys_and_returns_deltas(): void
     {
-        $controller = new UpdateController(new ComponentManager());
-        $response = $controller->handle($this->requestWith([
+        $response = $this->controller()->handle($this->requestWith([
             'i' => 'int-1',
             'n' => CounterComponent::class,
             't' => 'a',
@@ -38,6 +45,38 @@ final class UpdateControllerTest extends TestCase
         $this->assertSame(5, $payload['s']['count'] ?? null);
         $this->assertArrayHasKey('d', $payload);
         $this->assertNotEmpty($payload['d']);
+        $this->assertSame(200, $response->getStatusCode());
+    }
+
+    public function test_handle_returns_422_on_validation(): void
+    {
+        $response = $this->controller()->handle($this->requestWith([
+            'i' => 'f1',
+            'n' => FormComponent::class,
+            't' => 'a',
+            'a' => 'save',
+            'g' => [],
+            's' => ['email' => '', 'note' => ''],
+        ]));
+
+        $this->assertSame(422, $response->getStatusCode());
+        $payload = $response->getData();
+        $this->assertFalse($payload['ok'] ?? true);
+        $this->assertArrayHasKey('email', $payload['e'] ?? []);
+    }
+
+    public function test_lazy_endpoint(): void
+    {
+        $response = $this->controller()->lazy($this->requestWith([
+            'n' => LazyDeskComponent::class,
+            'i' => 'lz-1',
+            'g' => [],
+        ]));
+        $payload = $response->getData();
+
+        $this->assertTrue($payload['ok'] ?? false);
+        $this->assertSame('lz-1', $payload['i'] ?? null);
+        $this->assertStringContainsString('Loaded desk', $payload['h'] ?? '');
     }
 
     public function test_unknown_action_bubbles_for_doppar_error_handler(): void
@@ -45,8 +84,7 @@ final class UpdateControllerTest extends TestCase
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage('decrementt');
 
-        $controller = new UpdateController(new ComponentManager());
-        $controller->handle($this->requestWith([
+        $this->controller()->handle($this->requestWith([
             'i' => 'x',
             'n' => CounterComponent::class,
             't' => 'a',
@@ -61,13 +99,18 @@ final class UpdateControllerTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Missing\\Component');
 
-        $controller = new UpdateController(new ComponentManager());
-        $controller->handle($this->requestWith([
+        $this->controller()->handle($this->requestWith([
             'i' => 'x',
             'n' => 'Missing\\Component',
             'a' => null,
             'g' => [],
             's' => [],
         ]));
+    }
+
+    public function test_empty_body_still_requires_component_name(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->controller()->handle(new Request());
     }
 }
