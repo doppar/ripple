@@ -14,6 +14,8 @@ function nodeAt(root, path) {
 
 export function applyPatches(mount, patches) {
   const root = contentRoot(mount);
+  const active = document.activeElement;
+
   for (const p of patches || []) {
     const target = nodeAt(root, p.p);
     switch (p.o) {
@@ -23,6 +25,13 @@ export function applyPatches(mount, patches) {
       case 'u':
         if (target && target.nodeType === 1 && p.a) {
           for (const [k, v] of Object.entries(p.a)) {
+            if (
+              target === active &&
+              (k === 'value' || k === 'checked') &&
+              (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')
+            ) {
+              continue;
+            }
             if (v === null || v === false) target.removeAttribute(k);
             else target.setAttribute(k, v === true ? '' : String(v));
           }
@@ -74,6 +83,12 @@ export function applyResponse(root, data, callAction) {
   if (data.s) root.setAttribute('data-ripple-state', JSON.stringify(data.s));
   if (data.f) root.setAttribute('data-ripple-f', data.f);
   if (data.x) root.setAttribute('data-ripple-x', data.x);
+
+  if (data.e && typeof data.e === 'object' && Object.keys(data.e).length) {
+    root.setAttribute('data-ripple-er', JSON.stringify(data.e));
+  } else {
+    root.removeAttribute('data-ripple-er');
+  }
 
   if (data.qs && typeof data.qs === 'object') {
     const url = new URL(window.location.href);

@@ -18,13 +18,15 @@ function inputValue(el) {
   return el.value;
 }
 
-async function updateProp(root, property, value) {
-  startLoading(root);
+async function updateProp(root, property, value, { silent = true } = {}) {
+  // Send last signed state + p/v only — do not mutate data-ripple-state before
+  // the response or the HMAC signature no longer matches.
+  if (!silent) startLoading(root);
   try {
     const data = await send(root, payloadFrom(root, { t: 'u', p: property, v: value }));
     applyResponse(root, data);
   } finally {
-    stopLoading(root);
+    if (!silent) stopLoading(root);
   }
 }
 
@@ -62,13 +64,6 @@ export function bindModels(root) {
         el._rippleHandler = handler;
       }
       el._rippleHandler(value);
-    } else {
-      const mount = rootOf(el) || root;
-      try {
-        const state = JSON.parse(mount.getAttribute('data-ripple-state') || '{}');
-        state[property] = value;
-        mount.setAttribute('data-ripple-state', JSON.stringify(state));
-      } catch (_) {}
     }
   });
 

@@ -24,12 +24,19 @@ export function payloadFrom(root, extras = {}) {
     state = JSON.parse(root.getAttribute('data-ripple-state') || '{}');
   } catch (_) {}
 
+  let er;
+  try {
+    const raw = root.getAttribute('data-ripple-er');
+    if (raw) er = JSON.parse(raw);
+  } catch (_) {}
+
   return {
     i: root.getAttribute('data-ripple-id'),
     n: root.getAttribute('data-ripple-name'),
     s: state,
     f: root.getAttribute('data-ripple-f') || undefined,
     x: root.getAttribute('data-ripple-x') || undefined,
+    ...(er && typeof er === 'object' && Object.keys(er).length ? { er } : {}),
     ...extras,
   };
 }

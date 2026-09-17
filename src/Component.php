@@ -201,6 +201,9 @@ abstract class Component
 
         $this->updating($property, $value);
 
+        // Drop stale field errors so live bind can patch them out of the DOM.
+        $this->resetValidation($property);
+
         $ref = new ReflectionProperty($this, $property);
         $type = $ref->getType();
         if ($type instanceof ReflectionNamedType && $type->getName() === 'array' && !is_array($value)) {
@@ -209,6 +212,10 @@ abstract class Component
 
         $ref->setValue($this, $value);
         $this->updated($property);
+
+        if (array_key_exists($property, $this->rules())) {
+            $this->validateOnly($property);
+        }
     }
 
     /**
@@ -346,11 +353,15 @@ abstract class Component
             return;
         }
 
+        $kept = $this->errorBag;
+        unset($kept[$field]);
+
         try {
+            $this->errorBag = [];
             $this->validate([$field => $rules[$field]]);
-            unset($this->errorBag[$field]);
+            $this->errorBag = $kept;
         } catch (ValidationException $e) {
-            $this->errorBag = array_merge($this->errorBag, $e->errors());
+            $this->errorBag = array_merge($kept, $e->errors());
         }
     }
 

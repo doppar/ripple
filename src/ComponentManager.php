@@ -354,7 +354,7 @@ final class ComponentManager
     ): array {
         $cid = $instance->getId() ?: $id;
 
-        return array_merge([
+        $payload = array_merge([
             'i' => $cid,
             'n' => $name,
             'd' => $deltas,
@@ -362,5 +362,11 @@ final class ComponentManager
             'f' => $this->signer->fingerprint($state),
             'x' => $this->signer->sign($state, $cid),
         ], $extra);
+
+        if (!array_key_exists('e', $payload)) {
+            $payload['e'] = $instance->getErrorBag();
+        }
+
+        return $payload;
     }
 }

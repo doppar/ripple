@@ -1,5 +1,4 @@
 import { updateUri } from './dom.js';
-import { showError } from './error.js';
 
 async function readBody(res) {
   const ct = res.headers.get('content-type') || '';
@@ -30,8 +29,6 @@ export async function send(_root, body) {
   const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
   if (csrf) headers['X-CSRF-TOKEN'] = csrf;
 
-  // No X-Requested-With: let Doppar use WebErrorHandler (debug / 500 page)
-  // instead of JsonErrorHandler for failed updates.
   const res = await fetch(updateUri(), {
     method: 'POST',
     headers,
@@ -50,7 +47,7 @@ export async function send(_root, body) {
       showServerErrorPage(bodyRead.data);
       throw new Error('Ripple update failed: ' + res.status);
     }
-    showError(bodyRead.data, res.status);
+    // JSON error without wire shape — let Doppar-style payload surface via throw
     const err = new Error(bodyRead.data.message || 'Ripple update failed: ' + res.status);
     err.payload = bodyRead.data;
     err.status = res.status;
@@ -83,7 +80,6 @@ export async function sendForm(url, formData) {
       showServerErrorPage(bodyRead.data);
       throw new Error('Upload failed');
     }
-    showError(bodyRead.data, res.status);
     throw new Error(bodyRead.data.message || 'Upload failed');
   }
   return bodyRead.kind === 'json' ? bodyRead.data : {};
