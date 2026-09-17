@@ -1,0 +1,118 @@
+# Components
+
+A Ripple component is a PHP class that extends `Doppar\Ripple\Component`. It holds state, handles actions, and renders HTML.
+
+## Class layout
+
+```php
+namespace App\Ripple;
+
+use Doppar\Ripple\Attributes\Invokable;
+use Doppar\Ripple\Component;
+
+class TodoList extends Component
+{
+    public string $draft = '';
+
+    /** @var list<string> */
+    public array $items = [];
+
+    #[Invokable]
+    public function add(): void
+    {
+        // ...
+    }
+
+    public function render(): mixed
+    {
+        return view('ripple.todo-list');
+    }
+}
+```
+
+Default namespace for short names is `App\Ripple\` (configurable).
+
+## Public properties = state
+
+Every non-static public property (except `id`) is tracked unless marked `#[Computed]`.
+
+- Sent to the browser as signed state
+- Available in the Odo view by the same name
+- Updated from the client via `ripple:bind` or action methods
+
+Use typed properties and sensible defaults.
+
+## Attributes
+
+| Attribute | Target | Purpose |
+|-----------|--------|---------|
+| `#[Invokable]` | method | Allow the browser to call this method |
+| `#[Locked]` | property | Client cannot change this property via property sync |
+| `#[Computed]` | property | Available in the view; never sent on the wire |
+| `#[QueryString]` | property | Sync with the URL query string |
+| `#[On('event')]` | method | Listen for a component event |
+| `#[Lazy]` | class | Defer full mount until visible / requested |
+
+### Locked
+
+```php
+#[Locked]
+public string $orderId = '';
+```
+
+Useful for server-assigned ids that must not be forged from the client.
+
+### Computed
+
+```php
+#[Computed]
+public string $summary = '';
+```
+
+Set these in `mount()`, `hydrateLifecycle()`, or `updated()`. They appear in the view but are not part of signed state.
+
+## Creating components
+
+```bash
+php pool make:ripple ContactForm
+php pool make:ripple Admin/UserTable
+php pool make:ripple Badge --inline
+```
+
+Nested names map to folders under `src/Ripple/` and `templates/views/ripple/`.
+
+## Mounting
+
+```php
+use Doppar\Ripple\Facade\Ripple;
+
+echo Ripple::mount(\App\Ripple\Counter::class);
+echo Ripple::mount('Counter'); // resolves via component_namespace
+echo Ripple::mount(\App\Ripple\Counter::class, ['count' => 5]);
+```
+
+In Odo:
+
+```odo
+[[! \Doppar\Ripple\Facade\Ripple::mount(\App\Ripple\Counter::class) !]]
+```
+
+## View data
+
+`viewData()` exposes all public properties plus `$errors` (validation bag). Extra keys can be passed through `view()`:
+
+```php
+return view('ripple.preference-panel', [
+    'themes' => ['tide' => 'Tide', 'ink' => 'Ink'],
+]);
+```
+
+## Aliases
+
+Register short names if you prefer:
+
+```php
+Ripple::register('counter', \App\Ripple\Counter::class);
+```
+
+Next: [Directives](directives.md) · [Lifecycle](lifecycle.md)

@@ -1,8 +1,13 @@
 # Ripple
 
-Server-driven UI for [Doppar](https://doppar.com). Components live in PHP. The browser sends actions; the server re-renders and replies with DOM patches from a Virtual DOM diff (delta rendering).
+Server-driven UI for [Doppar](https://doppar.com).
 
-Early project. APIs can change.
+You write PHP components and Odo views. The browser calls actions; Ripple re-renders on the server and patches only what changed in the DOM.
+
+## Requirements
+
+- PHP 8.5+
+- Doppar 4.x
 
 ## Install
 
@@ -13,32 +18,30 @@ composer require doppar/ripple
 Register the launcher in `runtime/config/app.php`:
 
 ```php
-"launchers" => [
+'launchers' => [
     App\Launchers\AppLauncher::class,
     Doppar\Ripple\RippleLauncher::class,
 ],
 ```
 
-Optional:
+Publish config and client assets (optional; assets are also copied on boot when missing):
 
 ```bash
-php pool vendor:publish --tag=ripple-config
+php pool vendor:publish --tag=ripple
 php pool vendor:publish --tag=ripple-assets
 ```
 
-Load the client:
+Include the client once in your layout `<head>`:
 
-```php
+```odo
 [[! \Doppar\Ripple\Facade\Ripple::scripts() !]]
 ```
 
-## Example
+## Quick start
 
 ```bash
 php pool make:ripple Counter
 ```
-
-Creates `src/Ripple/Counter.php` and `templates/views/ripple/counter.odo.php`.
 
 ```php
 <?php
@@ -61,8 +64,6 @@ class Counter extends Component
     public function render(): mixed
     {
         return view('ripple.counter');
-        // or: return 'ripple.counter';
-        // or inline HTML: return '<div>...</div>';
     }
 }
 ```
@@ -74,47 +75,29 @@ class Counter extends Component
 </div>
 ```
 
-Public properties are available in the Odo view automatically. Use `--inline` to keep markup in the PHP class.
+Mount it in a page:
 
-```php
+```odo
 [[! \Doppar\Ripple\Facade\Ripple::mount(\App\Ripple\Counter::class) !]]
 ```
 
-### Directives
+## Documentation
 
-| Attribute | Purpose |
-|-----------|---------|
-| `ripple:call="method"` | Call an `#[Invokable]` method (default event: click) |
-| `ripple:on="submit"` | Event that triggers `ripple:call` |
-| `ripple:bind` / `.live` / `.lazy` / `.debounce.N` | Sync input to a public property |
-| `ripple:loading` | Shown while a request is in flight |
-| `ripple:loading.target` | Disabled / busy while loading |
-| `ripple:poll="2s"` | Poll interval (HTTP) |
-| `ripple:poll.call="tick"` | Method polled |
-| `ripple:confirm="…"` | Confirm before call |
+Full guides live in [`docs/`](docs/README.md):
 
-Root mount uses `data-ripple` (injected by `mount()`).
+| Topic | Description |
+|-------|-------------|
+| [Installation](docs/installation.md) | Setup, assets, layout scripts |
+| [Getting started](docs/getting-started.md) | First component end to end |
+| [Components](docs/components.md) | State, attributes, render |
+| [Directives](docs/directives.md) | `ripple:call`, bind, loading, poll |
+| [Lifecycle](docs/lifecycle.md) | `mount`, `updated`, hooks |
+| [Validation](docs/validation.md) | Rules and `$errors` |
+| [Events](docs/events.md) | Component and browser events |
+| [Query string](docs/query-string.md) | URL-synced properties |
+| [Pagination](docs/pagination.md) | `HasPagination` trait |
+| [Lazy loading](docs/lazy-loading.md) | Deferred mount |
+| [File uploads](docs/file-uploads.md) | Temp upload and permanent store |
+| [Navigation](docs/navigation.md) | Soft and hard redirects |
+| [Configuration](docs/configuration.md) | `config/ripple.php` reference |
 
-## Update protocol
-
-`POST /ripple/update` uses short keys (`i` id, `n` name, `t` type, `a` action, `g` args, `s` state, `p`/`v` prop update, `d` deltas, `e` validation errors, `rd` redirect).
-
-## Client assets
-
-```bash
-npm install
-npm run build
-```
-
-Writes `resources/dist/ripple.min.js`.
-
-## Tests
-
-```bash
-composer install
-composer test
-```
-
-## License
-
-MIT
