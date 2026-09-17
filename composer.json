@@ -37,7 +37,11 @@
         }
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "build": "npm run build",
+        "prepublish-assets": [
+            "@build"
+        ]
     },
     "extra": {
         "branch-alias": {

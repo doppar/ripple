@@ -32,23 +32,29 @@ class RippleLauncher extends PackageServiceLauncher
 
         $this->publishesConfig(__DIR__ . '/../config/ripple.php', 'ripple');
 
-        $this->publishes([
-            __DIR__ . '/../resources/js/ripple.js' => public_path('vendor/ripple/ripple.js'),
-        ], 'ripple-assets');
+        $dist = $this->clientDistPath();
+        if (is_file($dist)) {
+            $this->publishes([
+                $dist => public_path('vendor/ripple/ripple.min.js'),
+            ], 'ripple-assets');
+        }
 
-        // Ensure the JS stub is available without a separate publish step in local path packages.
         $this->ensureClientAsset();
+    }
+
+    private function clientDistPath(): string
+    {
+        return __DIR__ . '/../resources/dist/ripple.min.js';
     }
 
     private function ensureClientAsset(): void
     {
-        $target = public_path('vendor/ripple/ripple.js');
-        $source = __DIR__ . '/../resources/js/ripple.js';
-
+        $source = $this->clientDistPath();
         if (!is_file($source)) {
             return;
         }
 
+        $target = public_path('vendor/ripple/ripple.min.js');
         $dir = dirname($target);
         if (!is_dir($dir)) {
             @mkdir($dir, 0775, true);

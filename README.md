@@ -28,7 +28,7 @@ php pool vendor:publish --tag=ripple-config
 Load the client in your layout:
 
 ```php
-[[ \Doppar\Ripple\Facade\Ripple::scripts() ]]
+[[! \Doppar\Ripple\Facade\Ripple::scripts() !]]
 ```
 
 ## Example
@@ -64,7 +64,7 @@ class Counter extends Component
 Mount:
 
 ```php
-[[ \Doppar\Ripple\Facade\Ripple::mount(\App\Ripple\Counter::class) ]]
+[[! \Doppar\Ripple\Facade\Ripple::mount(\App\Ripple\Counter::class) !]]
 ```
 
 ### Attributes
@@ -120,3 +120,14 @@ PHPUnit. Suites live under `tests/Unit`, `tests/Feature`, and `tests/Integration
 composer install
 composer test
 ```
+
+## Client assets
+
+Source lives in `resources/js/src`. Build (esbuild, minified IIFE) writes `resources/dist/ripple.min.js`.
+
+```bash
+npm install
+npm run build
+```
+
+Run `npm run build` before tagging a release or publishing. Publish / sync uses the dist file (`php pool vendor:publish --tag=ripple-assets`).

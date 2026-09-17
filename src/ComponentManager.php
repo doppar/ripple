@@ -135,10 +135,15 @@ final class ComponentManager
 
     public function scripts(): string
     {
-        $src = '/vendor/ripple/ripple.js';
+        $src = '/vendor/ripple/ripple.min.js';
         $uri = htmlspecialchars((string) config('ripple.update_uri', '/ripple/update'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $csrf = function_exists('csrf_token') ? (string) (csrf_token() ?? '') : '';
+        $csrfMeta = $csrf !== ''
+            ? '<meta name="csrf-token" content="' . htmlspecialchars($csrf, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">'
+            : '';
 
-        return '<meta name="ripple-update" content="' . $uri . '">'
+        return $csrfMeta
+            . '<meta name="ripple-update" content="' . $uri . '">'
             . '<script src="' . $src . '" defer></script>';
     }
 
