@@ -1,12 +1,17 @@
 {
     "name": "doppar/ripple",
+    "description": "Server-driven UI for Doppar with Virtual DOM delta rendering",
     "type": "library",
     "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "Doppar\\Ripple\\": "src/"
-        }
-    },
+    "keywords": [
+        "doppar",
+        "ripple",
+        "server-driven-ui",
+        "virtual-dom",
+        "delta-rendering",
+        "diff-engine"
+    ],
+    "homepage": "https://github.com/doppar/ripple",
     "authors": [
         {
             "name": "xentixar",
@@ -14,5 +19,31 @@
             "role": "Developer"
         }
     ],
-    "require": {}
+    "require": {
+        "php": "^8.5",
+        "doppar/framework": "4.*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^13.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Doppar\\Ripple\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Doppar\\Ripple\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

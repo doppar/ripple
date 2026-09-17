@@ -1,1 +1,8 @@
 vendor
+composer.lock
+.cursor/
+AGENTS.md
+.agents/
+CLAUDE.md
+.claude/
+.phpunit.cache/
