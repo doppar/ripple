@@ -274,14 +274,16 @@ abstract class Component
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<string, mixed|null>
      */
     public function getQueryString(): array
     {
         $query = [];
         foreach ($this->urlProperties as $property => $config) {
             $value = property_exists($this, $property) ? $this->{$property} : null;
+            // null ⇒ client should delete the param (keep empty keys out of the URL)
             if (!$config['keep'] && ($value === null || $value === '')) {
+                $query[$config['as']] = null;
                 continue;
             }
             $query[$config['as']] = $value;

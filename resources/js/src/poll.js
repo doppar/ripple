@@ -1,6 +1,5 @@
-import { findAttr, parseInterval, payloadFrom, rootOf } from './dom.js';
+import { parseInterval, payloadFrom, rootOf } from './dom.js';
 import { send } from './http.js';
-import { startLoading, stopLoading } from './loading.js';
 import { applyResponse } from './patch.js';
 
 export function bindPolls(root) {
@@ -11,11 +10,10 @@ export function bindPolls(root) {
     const action = el.getAttribute('ripple:poll.call') || 'refresh';
     const mount = rootOf(el) || root;
     setInterval(() => {
-      startLoading(mount);
+      // Silent: no loading UI — interval polls would otherwise flash every tick.
       send(mount, payloadFrom(mount, { t: 'a', a: action, g: [] }))
         .then((data) => applyResponse(mount, data))
-        .catch(() => {})
-        .finally(() => stopLoading(mount));
+        .catch(() => {});
     }, ms);
   });
 }

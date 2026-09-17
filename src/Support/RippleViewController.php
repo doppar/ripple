@@ -15,7 +15,7 @@ final class RippleViewController extends Controller
     {
         if ($component = Component::current()) {
             $data = array_merge($component->viewData(), $data);
-            $isolated = new Controller();
+            $isolated = new IsolatedViewEngine();
 
             return $isolated->render($name, $data, $returnOnly);
         }

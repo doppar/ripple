@@ -139,9 +139,8 @@ final class ComponentManager
         }
         $instance->clearDispatchedEvents();
 
-        $qs = $instance->getQueryString();
-        if ($qs !== []) {
-            $response['qs'] = $qs;
+        if ($instance->getUrlProperties() !== []) {
+            $response['qs'] = $instance->getQueryString();
         }
 
         return $response;

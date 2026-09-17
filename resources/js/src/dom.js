@@ -65,3 +65,48 @@ export function parseInterval(value) {
   if (value.endsWith('s')) return (parseFloat(value) || 2) * 1000;
   return parseInt(value, 10) || 2000;
 }
+
+/** Parse ripple:call="save" or ripple:call="toggle(3)" / remove('x'). */
+export function parseCall(expr) {
+  const raw = String(expr || '').trim();
+  const m = /^([A-Za-z_][\w]*)\((.*)\)$/s.exec(raw);
+  if (!m) return { action: raw, args: [] };
+
+  const inner = m[2].trim();
+  if (inner === '') return { action: m[1], args: [] };
+
+  const args = [];
+  let buf = '';
+  let quote = null;
+  for (let i = 0; i < inner.length; i++) {
+    const ch = inner[i];
+    if (quote) {
+      if (ch === quote) quote = null;
+      else buf += ch;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (ch === ',') {
+      args.push(coerceArg(buf.trim()));
+      buf = '';
+      continue;
+    }
+    buf += ch;
+  }
+  if (buf.trim() !== '' || inner.endsWith(',')) args.push(coerceArg(buf.trim()));
+
+  return { action: m[1], args };
+}
+
+function coerceArg(s) {
+  if (s === '') return '';
+  if (s === 'true') return true;
+  if (s === 'false') return false;
+  if (s === 'null') return null;
+  if (/^-?\d+$/.test(s)) return parseInt(s, 10);
+  if (/^-?\d+\.\d+$/.test(s)) return parseFloat(s);
+  return s;
+}

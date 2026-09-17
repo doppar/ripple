@@ -96,7 +96,8 @@ export function applyResponse(root, data, callAction) {
       if (v == null || v === '') url.searchParams.delete(k);
       else url.searchParams.set(k, String(v));
     }
-    history.replaceState({}, '', url);
+    const qs = url.searchParams.toString();
+    history.replaceState({}, '', url.pathname + (qs ? '?' + qs : '') + url.hash);
   }
 
   handleEvents(root, data, callAction);

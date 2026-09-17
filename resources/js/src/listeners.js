@@ -1,4 +1,4 @@
-import { payloadFrom, rootOf } from './dom.js';
+import { parseCall, payloadFrom, rootOf } from './dom.js';
 import { send } from './http.js';
 import { confirmAction } from './confirm.js';
 import { startLoading, stopLoading } from './loading.js';
@@ -26,7 +26,8 @@ export function bindListeners() {
       if (!root) return;
       if (!confirmAction(btn)) return;
       e.preventDefault();
-      runCall(root, btn.getAttribute('ripple:call'), []).catch(() => {});
+      const { action, args } = parseCall(btn.getAttribute('ripple:call'));
+      runCall(root, action, args).catch(() => {});
     },
     true,
   );
@@ -42,7 +43,8 @@ export function bindListeners() {
       if (!root) return;
       if (!confirmAction(form)) return;
       e.preventDefault();
-      runCall(root, form.getAttribute('ripple:call'), []).catch(() => {});
+      const { action, args } = parseCall(form.getAttribute('ripple:call'));
+      runCall(root, action, args).catch(() => {});
     },
     true,
   );
