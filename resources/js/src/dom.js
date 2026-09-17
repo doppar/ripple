@@ -10,6 +10,15 @@ export function uploadUri() {
   return document.querySelector('meta[name="ripple-upload"]')?.content || '/ripple/upload';
 }
 
+export function previewUri() {
+  return document.querySelector('meta[name="ripple-preview"]')?.content || '/ripple/preview';
+}
+
+export function defaultDebounce() {
+  const n = parseInt(document.querySelector('meta[name="ripple-debounce"]')?.content || '150', 10);
+  return Number.isFinite(n) && n >= 0 ? n : 150;
+}
+
 export function rootOf(el) {
   return el.closest('[data-ripple]');
 }
@@ -55,7 +64,7 @@ export function parseModifiers(attrName) {
   if (parts.includes('lazy')) mods.lazy = true;
   const di = parts.indexOf('debounce');
   if (di >= 0 && parts[di + 1]) mods.debounce = parseInt(parts[di + 1], 10);
-  else if (mods.live) mods.debounce = 150;
+  else if (mods.live) mods.debounce = defaultDebounce();
   return mods;
 }
 

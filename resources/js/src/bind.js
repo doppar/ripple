@@ -37,6 +37,9 @@ async function uploadFiles(root, property, files, multiple) {
     const ids = [];
     for (const f of [...files]) {
       const uploaded = await uploadFile(id, property, f);
+      if (!uploaded?.id) {
+        throw new Error(uploaded?.message || 'Upload failed');
+      }
       ids.push(uploaded.id);
     }
     const data = await send(
@@ -44,6 +47,10 @@ async function uploadFiles(root, property, files, multiple) {
       payloadFrom(root, { t: 'u', p: property, v: multiple ? ids : ids[0] }),
     );
     applyResponse(root, data);
+  } catch (err) {
+    const message = err?.message || 'Upload failed';
+    root.dispatchEvent(new CustomEvent('ripple:upload-error', { bubbles: true, detail: { message, property } }));
+    console.error('[ripple] upload:', message);
   } finally {
     stopLoading(root);
   }

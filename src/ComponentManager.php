@@ -184,16 +184,19 @@ final class ComponentManager
     public function scripts(): string
     {
         $src = '/vendor/ripple/ripple.min.js';
-        $uri = htmlspecialchars((string) Config::get('ripple.update_uri', '/ripple/update'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $h = static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $csrf = function_exists('csrf_token') ? (string) (csrf_token() ?? '') : '';
         $csrfMeta = $csrf !== ''
-            ? '<meta name="csrf-token" content="' . htmlspecialchars($csrf, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">'
+            ? '<meta name="csrf-token" content="' . $h($csrf) . '">'
             : '';
+        $debounce = (int) Config::get('ripple.performance.debounce_default', 150);
 
         return $csrfMeta
-            . '<meta name="ripple-update" content="' . $uri . '">'
-            . '<meta name="ripple-lazy" content="' . htmlspecialchars((string) Config::get('ripple.lazy_uri', '/ripple/lazy'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">'
-            . '<meta name="ripple-upload" content="' . htmlspecialchars((string) Config::get('ripple.upload_uri', '/ripple/upload'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">'
+            . '<meta name="ripple-update" content="' . $h((string) Config::get('ripple.update_uri', '/ripple/update')) . '">'
+            . '<meta name="ripple-lazy" content="' . $h((string) Config::get('ripple.lazy_uri', '/ripple/lazy')) . '">'
+            . '<meta name="ripple-upload" content="' . $h((string) Config::get('ripple.upload_uri', '/ripple/upload')) . '">'
+            . '<meta name="ripple-preview" content="' . $h((string) Config::get('ripple.preview_uri', '/ripple/preview')) . '">'
+            . '<meta name="ripple-debounce" content="' . $h((string) max(0, $debounce)) . '">'
             . '<script src="' . $src . '" defer></script>';
     }
 

@@ -44,7 +44,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | URI used to serve temporary upload previews while a file is still in
-    | the Ripple temp store.
+    | the Ripple temp store. Emitted as <meta name="ripple-preview">.
     |
     */
 
@@ -88,15 +88,13 @@ return [
     |--------------------------------------------------------------------------
     |
     | debounce_default: Default debounce window (ms) for ripple:bind.live when
-    |                   no explicit .debounce.N modifier is set.
-    |
-    | minify_patches: When true, prefer compact delta payloads in responses.
+    |                   no explicit .debounce.N modifier is set. Emitted as
+    |                   <meta name="ripple-debounce"> for the client runtime.
     |
     */
 
     'performance' => [
-        'debounce_default' => 150,
-        'minify_patches' => true,
+        'debounce_default' => env('RIPPLE_DEBOUNCE_DEFAULT', 150),
     ],
 
     /*
@@ -104,14 +102,10 @@ return [
     | File Uploads
     |--------------------------------------------------------------------------
     |
-    | Temporary upload storage used before a component moves files to a
-    | permanent location.
-    |
-    | disk: Filesystem disk name (see config/filesystem.php).
-    | temporary_path: Path under the disk root for pending uploads.
-    | max_size: Maximum upload size in kilobytes.
-    | cleanup_after_hours: Age after which orphaned temp files are removed
-    |                      by the ripple:cleanup-temp command.
+    | disk: filesystem.disks.* name
+    | temporary_path: relative path on that disk
+    | max_size: max KB (also raise PHP upload_max_filesize)
+    | cleanup_after_hours: for `php pool ripple:cleanup`
     |
     */
 
@@ -121,17 +115,5 @@ return [
         'max_size' => env('RIPPLE_FILE_MAX_SIZE', 12288),
         'cleanup_after_hours' => env('RIPPLE_FILE_CLEANUP_HOURS', 24),
     ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Debug
-    |--------------------------------------------------------------------------
-    |
-    | Extra Ripple diagnostics. Application-level error pages still follow
-    | APP_DEBUG for failed updates that bubble to Doppar's error handler.
-    |
-    */
-
-    'debug' => env('RIPPLE_DEBUG', false),
 
 ];
