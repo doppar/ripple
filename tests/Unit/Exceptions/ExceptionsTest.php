@@ -20,4 +20,10 @@ final class ExceptionsTest extends TestCase
         $e = new RedirectException(['u' => '/x']);
         $this->assertSame(['u' => '/x', 'spa' => true], $e->redirect());
     }
+
+    public function test_redirect_exception_preserves_spa_false(): void
+    {
+        $e = new RedirectException(['u' => '/y', 'spa' => false]);
+        $this->assertSame(['u' => '/y', 'spa' => false], $e->redirect());
+    }
 }

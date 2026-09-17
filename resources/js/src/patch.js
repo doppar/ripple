@@ -1,5 +1,6 @@
 import { contentRoot } from './dom.js';
 import { handleEvents } from './events.js';
+import { handleRedirect } from './navigate.js';
 
 function nodeAt(root, path) {
   if (path === '' || path == null) return root;
@@ -66,9 +67,7 @@ export function applyPatches(mount, patches) {
 }
 
 export function applyResponse(root, data, callAction) {
-  if (data.rd?.u) {
-    if (data.rd.spa !== false) window.location.href = data.rd.u;
-    else window.location.assign(data.rd.u);
+  if (handleRedirect(data.rd)) {
     return;
   }
 

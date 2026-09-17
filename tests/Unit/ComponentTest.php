@@ -255,6 +255,18 @@ final class ComponentTest extends TestCase
         }
     }
 
+    public function test_redirect_defaults_to_spa(): void
+    {
+        $c = new FormComponent();
+        try {
+            $c->callAction('goAway');
+            $this->fail('expected redirect');
+        } catch (RedirectException $e) {
+            $this->assertSame('/done', $e->redirect()['u']);
+            $this->assertTrue($e->redirect()['spa']);
+        }
+    }
+
     public function test_dispatch_variants_and_clear(): void
     {
         $c = new KitchenSinkComponent();

@@ -230,6 +230,24 @@ final class ComponentManagerTest extends TestCase
 
         $this->assertTrue($result['ok']);
         $this->assertSame('/done', $result['rd']['u'] ?? null);
+        $this->assertTrue($result['rd']['spa'] ?? false);
+    }
+
+    public function test_redirect_payload_hard_disables_spa(): void
+    {
+        $state = (new KitchenSinkComponent())->getState();
+        $result = $this->manager->update([
+            'i' => 'k1',
+            'n' => KitchenSinkComponent::class,
+            't' => 'a',
+            'a' => 'leave',
+            'g' => [],
+            's' => $state,
+        ]);
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame('/elsewhere', $result['rd']['u'] ?? null);
+        $this->assertFalse($result['rd']['spa'] ?? true);
     }
 
     public function test_dispatch_in_response(): void
