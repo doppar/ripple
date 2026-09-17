@@ -24,6 +24,7 @@ final class ComponentHydrator
         if ($params !== []) {
             $instance->hydrate($params);
         }
+        $instance->hydrateFromQueryString();
         $instance->mount();
 
         return $instance;

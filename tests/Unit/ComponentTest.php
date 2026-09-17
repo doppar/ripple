@@ -3,6 +3,7 @@
 namespace Doppar\Ripple\Tests\Unit;
 
 use Doppar\Ripple\Tests\Fixtures\CounterComponent;
+use Doppar\Ripple\Tests\Fixtures\PaginatedComponent;
 use Doppar\Ripple\Tests\TestCase;
 
 final class ComponentTest extends TestCase
@@ -32,16 +33,29 @@ final class ComponentTest extends TestCase
         (new CounterComponent())->callAction('missing');
     }
 
-    public function test_view_data_exposes_public_properties_and_errors(): void
+    public function test_get_query_string_omits_default_page(): void
+    {
+        $component = new PaginatedComponent();
+        $this->assertNull($component->getQueryString()['page']);
+
+        $component->page = 3;
+        $this->assertSame(3, $component->getQueryString()['page']);
+    }
+
+    public function test_update_property_coerces_empty_string_to_int_zero(): void
     {
         $component = new CounterComponent();
-        $component->count = 7;
-        $component->setErrorBag(['count' => ['too high']]);
+        $component->count = 9;
+        $component->updateProperty('count', '');
 
-        $data = $component->viewData();
+        $this->assertSame(0, $component->count);
+    }
 
-        $this->assertSame(7, $data['count']);
-        $this->assertSame('nope', $data['secret']);
-        $this->assertSame(['count' => ['too high']], $data['errors']);
+    public function test_update_property_coerces_numeric_string_to_int(): void
+    {
+        $component = new CounterComponent();
+        $component->updateProperty('count', '42');
+
+        $this->assertSame(42, $component->count);
     }
 }

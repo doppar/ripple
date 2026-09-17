@@ -181,7 +181,7 @@ abstract class Component
             if (!$property->isPublic() || $property->isStatic()) {
                 continue;
             }
-            $property->setValue($this, $value);
+            $property->setValue($this, $this->castIncoming($property, $value));
         }
 
         $this->hydrateLifecycle();
@@ -205,17 +205,49 @@ abstract class Component
         $this->resetValidation($property);
 
         $ref = new ReflectionProperty($this, $property);
-        $type = $ref->getType();
-        if ($type instanceof ReflectionNamedType && $type->getName() === 'array' && !is_array($value)) {
-            $value = $value !== null ? [$value] : [];
-        }
-
-        $ref->setValue($this, $value);
+        $ref->setValue($this, $this->castIncoming($ref, $value));
         $this->updated($property);
 
         if (array_key_exists($property, $this->rules())) {
             $this->validateOnly($property);
         }
+    }
+
+    /**
+     * Wire payloads arrive as JSON/strings; typed public props need coercion
+     * (e.g. cleared number inputs send "").
+     */
+    private function castIncoming(ReflectionProperty $ref, mixed $value): mixed
+    {
+        $type = $ref->getType();
+        if (!$type instanceof ReflectionNamedType || !$type->isBuiltin()) {
+            return $value;
+        }
+
+        $name = $type->getName();
+        $nullable = $type->allowsNull();
+
+        if ($value === null || $value === '') {
+            return match ($name) {
+                'int' => $nullable ? null : 0,
+                'float' => $nullable ? null : 0.0,
+                'bool' => $nullable ? null : false,
+                'string' => $nullable && $value === null ? null : '',
+                'array' => $nullable && $value === null ? null : [],
+                default => $value,
+            };
+        }
+
+        return match ($name) {
+            'int' => (int) $value,
+            'float' => (float) $value,
+            'bool' => is_bool($value)
+                ? $value
+                : (filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? (bool) $value),
+            'string' => (string) $value,
+            'array' => is_array($value) ? $value : [$value],
+            default => $value,
+        };
     }
 
     /**
@@ -274,19 +306,67 @@ abstract class Component
     }
 
     /**
+     * Pull #[QueryString] props from the current request so a refresh keeps page/filters.
+     */
+    public function hydrateFromQueryString(): void
+    {
+        if ($this->urlProperties === [] || ! function_exists('request')) {
+            return;
+        }
+
+        try {
+            $req = request();
+        } catch (\Throwable) {
+            return;
+        }
+
+        if (! is_object($req) || ! isset($req->query) || ! is_object($req->query)) {
+            return;
+        }
+
+        foreach ($this->urlProperties as $property => $config) {
+            $key = $config['as'];
+            if (! method_exists($req->query, 'has') || ! $req->query->has($key)) {
+                continue;
+            }
+            if (! property_exists($this, $property)) {
+                continue;
+            }
+
+            $raw = $req->query->all()[$key] ?? null;
+            $ref = new ReflectionProperty($this, $property);
+            $ref->setValue($this, $this->castIncoming($ref, $raw));
+        }
+    }
+
+    /**
      * @return array<string, mixed|null>
      */
     public function getQueryString(): array
     {
         $query = [];
         foreach ($this->urlProperties as $property => $config) {
+            $as = $config['as'];
             $value = property_exists($this, $property) ? $this->{$property} : null;
-            // null ⇒ client should delete the param (keep empty keys out of the URL)
-            if (!$config['keep'] && ($value === null || $value === '')) {
-                $query[$config['as']] = null;
+
+            if ($config['keep']) {
+                $query[$as] = $value;
                 continue;
             }
-            $query[$config['as']] = $value;
+
+            // null ⇒ client deletes the param; also drop values that match the property default
+            if ($value === null || $value === '') {
+                $query[$as] = null;
+                continue;
+            }
+
+            $ref = new ReflectionProperty($this, $property);
+            if ($ref->hasDefaultValue() && $value === $ref->getDefaultValue()) {
+                $query[$as] = null;
+                continue;
+            }
+
+            $query[$as] = $value;
         }
 
         return $query;
