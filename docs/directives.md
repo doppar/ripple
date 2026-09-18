@@ -70,6 +70,16 @@ File inputs upload to the temp endpoint, then set the property to a temp id (or 
 
 Uses the browser `confirm()` dialog before sending the request.
 
+## SPA links: `ripple:navigate`
+
+Intercept same-origin link clicks and soft-navigate (fetch HTML, swap `body`, `pushState`) instead of a full reload:
+
+```odo
+<a href="/ripple/counter" ripple:navigate>Counter</a>
+```
+
+Skipped automatically for modified clicks, new tabs (`target`), downloads, cross-origin URLs, and hash-only same-page links. Scripts in the layout `<head>` (including `Ripple::scripts()`) stay loaded across soft navigations.
+
 ## Polling
 
 ```odo
@@ -89,4 +99,4 @@ The method must be `#[Invokable]`.
 - Prefer `.live` only where you need instant search-style feedback; default bind is cheaper.
 - Put layout-level scripts in `<head>` so loading and calls work after soft navigation.
 
-Next: [Lifecycle](lifecycle.md) · [Validation](validation.md)
+Next: [Lifecycle](lifecycle.md) · [Validation](validation.md) · [Navigation](navigation.md)

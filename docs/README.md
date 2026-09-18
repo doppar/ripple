@@ -21,7 +21,7 @@ Guides for building Doppar apps with Ripple. Read in order if you are new; jump 
 9. [Pagination](pagination.md)
 10. [Lazy loading](lazy-loading.md)
 11. [File uploads](file-uploads.md)
-12. [Navigation (SPA redirects)](navigation.md)
+12. [Navigation (SPA + Route::ripple)](navigation.md)
 
 ## Reference
 

@@ -322,6 +322,47 @@ final class ComponentTest extends TestCase
         $this->assertTrue($c->getUrlProperties()['tab']['keep']);
     }
 
+    public function test_validate_uses_framework_rules(): void
+    {
+        $c = new class () extends \Doppar\Ripple\Component {
+            public string $email = '';
+
+            public string $role = '';
+
+            protected function rules(): array
+            {
+                return [
+                    'email' => 'required|email',
+                    'role' => 'required|in:admin,user',
+                ];
+            }
+
+            #[\Doppar\Ripple\Attributes\Invokable]
+            public function save(): void
+            {
+                $this->validate();
+            }
+
+            public function render(): string
+            {
+                return '<div></div>';
+            }
+        };
+        $c->email = 'ok@example.com';
+        $c->role = 'nope';
+
+        try {
+            $c->callAction('save');
+            $this->fail('expected in: validation');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('role', $e->errors());
+        }
+
+        $c->role = 'admin';
+        $c->callAction('save');
+        $this->assertSame([], $c->getErrorBag());
+    }
+
     public function test_pagination_actions(): void
     {
         $c = new PaginatedComponent();

@@ -5,6 +5,7 @@ namespace Doppar\Ripple;
 use Doppar\Ripple\Console\CleanupTemporaryFilesCommand;
 use Doppar\Ripple\Console\MakeRippleCommand;
 use Doppar\Ripple\FileUpload\FileUploadService;
+use Doppar\Ripple\Routing\RippleRouter;
 use Doppar\Ripple\State\StateSigner;
 use Doppar\Ripple\Support\RippleViewController;
 use Doppar\Ripple\Support\ViewCache;
@@ -28,6 +29,14 @@ class RippleLauncher extends PackageServiceLauncher
 
         // view() resolves Controller — merge Ripple public props while a component renders
         $this->app->singleton(Controller::class, fn () => new RippleViewController());
+
+        // Route::ripple() — replace Router before middleware/routes attach (shares static $routes)
+        $existing = $this->app->make('route');
+        if (! $existing instanceof RippleRouter) {
+            $router = new RippleRouter($existing->getGateway());
+            $this->app->instance('route', $router);
+            $this->app->router = $router;
+        }
 
         $this->app->singleton(StateSigner::class, fn () => StateSigner::fromConfig());
         $this->app->singleton(FileUploadService::class, fn () => new FileUploadService());

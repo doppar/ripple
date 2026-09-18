@@ -2,7 +2,9 @@
 
 namespace Doppar\Ripple;
 
+use Doppar\Ripple\Attributes\Layout;
 use Doppar\Ripple\Attributes\Lazy;
+use Doppar\Ripple\Attributes\Title;
 use Doppar\Ripple\Delta\DiffEngine;
 use Doppar\Ripple\Exceptions\RedirectException;
 use Doppar\Ripple\Exceptions\ValidationException;
@@ -10,6 +12,8 @@ use Doppar\Ripple\State\ComponentHydrator;
 use Doppar\Ripple\State\StateSigner;
 use Doppar\Ripple\Support\Config;
 use Doppar\Ripple\VDom\HtmlParser;
+use Phaseolies\Http\Response;
+use ReflectionClass;
 
 final class ComponentManager
 {
@@ -62,6 +66,26 @@ final class ComponentManager
         $signature = $this->signer->sign($state, $id);
 
         return $this->wrap($html, $id, $instance::class, $state, $fingerprint, $signature, $instance->getEventListeners());
+    }
+
+    /**
+     * Render a full-page component inside a layout (Route::ripple).
+     *
+     * @param class-string<Component>|string $component
+     * @param array<string, mixed> $params
+     */
+    public function renderPage(string $component, array $params = []): Response
+    {
+        $class = $this->resolveClass($component);
+        $html = $this->mount($class, $params);
+        $layout = $this->resolveLayout($class);
+        $title = $this->resolveTitle($class);
+
+        return view('ripple::page', [
+            'layout' => $layout,
+            'title' => $title,
+            'html' => $html,
+        ]);
     }
 
     /**
@@ -208,6 +232,40 @@ final class ComponentManager
     public function signer(): StateSigner
     {
         return $this->signer;
+    }
+
+    /**
+     * @param class-string<Component> $class
+     */
+    private function resolveLayout(string $class): string
+    {
+        $attrs = (new ReflectionClass($class))->getAttributes(Layout::class);
+        if ($attrs !== []) {
+            /** @var Layout $layout */
+            $layout = $attrs[0]->newInstance();
+
+            return $layout->name;
+        }
+
+        return (string) Config::get('ripple.layout', 'ripple::layouts.app');
+    }
+
+    /**
+     * @param class-string<Component> $class
+     */
+    private function resolveTitle(string $class): string
+    {
+        $attrs = (new ReflectionClass($class))->getAttributes(Title::class);
+        if ($attrs !== []) {
+            /** @var Title $title */
+            $title = $attrs[0]->newInstance();
+
+            return $title->value;
+        }
+
+        $base = (new ReflectionClass($class))->getShortName();
+
+        return preg_replace('/Component$/', '', $base) ?: $base;
     }
 
     /**

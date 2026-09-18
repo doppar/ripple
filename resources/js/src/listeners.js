@@ -39,6 +39,13 @@ export function bindListeners() {
     document.addEventListener(
       'click',
       (e) => {
+        const link = e.target.closest('a[ripple\\:navigate]');
+        if (link && shouldSoftNavigate(e, link)) {
+          e.preventDefault();
+          softNavigate(link.href).catch(() => {});
+          return;
+        }
+
         const btn = e.target.closest('[ripple\\:call]');
         if (!btn) return;
         const on = (btn.getAttribute('ripple:on') || 'click').toLowerCase();
@@ -80,4 +87,35 @@ export function bindListeners() {
   }
 
   mountRippleRoots(document);
+}
+
+/** @param {MouseEvent} e @param {HTMLAnchorElement} link */
+function shouldSoftNavigate(e, link) {
+  if (e.defaultPrevented || e.button !== 0) return false;
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return false;
+
+  const target = (link.getAttribute('target') || '').toLowerCase();
+  if (target !== '' && target !== '_self') return false;
+  if (link.hasAttribute('download')) return false;
+
+  const href = link.getAttribute('href');
+  if (!href || href.startsWith('#') || href.startsWith('javascript:')) return false;
+
+  let url;
+  try {
+    url = new URL(link.href, window.location.href);
+  } catch (_) {
+    return false;
+  }
+
+  if (url.origin !== window.location.origin) return false;
+  if (
+    url.pathname === window.location.pathname &&
+    url.search === window.location.search &&
+    url.hash !== ''
+  ) {
+    return false;
+  }
+
+  return true;
 }

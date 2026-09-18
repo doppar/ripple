@@ -27,6 +27,14 @@ Change these only if your app needs non-default paths. `Ripple::scripts()` emits
 
 Used when mounting by short name (`Ripple::mount('Counter')`).
 
+## Full-page layout
+
+```php
+'layout' => env('RIPPLE_LAYOUT', 'ripple::layouts.app'),
+```
+
+Default Odo layout for `Route::ripple()` when the component has no `#[Layout]` attribute. The layout must `#yield('content')` and include `Ripple::scripts()` in `<head>`.
+
 ## Security
 
 ```php

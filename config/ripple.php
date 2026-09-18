@@ -64,6 +64,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Full-Page Layout
+    |--------------------------------------------------------------------------
+    |
+    | Default Odo layout view for Route::ripple() pages when the component
+    | has no #[Layout] attribute. The layout must #yield('content') and
+    | include Ripple::scripts() in <head> for soft navigation.
+    |
+    */
+
+    'layout' => env('RIPPLE_LAYOUT', 'ripple::layouts.app'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Security
     |--------------------------------------------------------------------------
     |

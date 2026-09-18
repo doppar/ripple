@@ -9,6 +9,8 @@ use Doppar\Ripple\Attributes\On;
 use Doppar\Ripple\Attributes\QueryString;
 use Doppar\Ripple\Exceptions\RedirectException;
 use Doppar\Ripple\Exceptions\ValidationException;
+use Phaseolies\Http\Validation\Bind;
+use Phaseolies\Support\Validation\Sanitizer;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
@@ -202,7 +204,6 @@ abstract class Component
 
         $this->updating($property, $value);
 
-        // Drop stale field errors so live bind can patch them out of the DOM.
         $this->resetValidation($property);
 
         $ref = new ReflectionProperty($this, $property);
@@ -374,7 +375,7 @@ abstract class Component
     }
 
     /**
-     * @return array<string, string|list<string>>
+     * @return array<string, string|list<string>|Bind>
      */
     protected function rules(): array
     {
@@ -390,34 +391,18 @@ abstract class Component
     }
 
     /**
-     * @param array<string, string|list<string>>|null $rules
+     * Validate component state with Doppar's Sanitizer (full framework rule set).
+     *
+     * @param array<string, string|list<string>|Bind>|null $rules
      * @return array<string, mixed>
      */
     protected function validate(?array $rules = null): array
     {
         $rules ??= $this->rules();
         $state = $this->getState();
-        $errors = [];
+        $normalized = $this->normalizeValidationRules($rules);
 
-        foreach ($rules as $field => $rule) {
-            $ruleList = is_array($rule) ? $rule : explode('|', (string) $rule);
-            $value = $state[$field] ?? null;
-            foreach ($ruleList as $r) {
-                $r = trim((string) $r);
-                if ($r === 'required' && ($value === null || $value === '')) {
-                    $errors[$field][] = $this->messages()["{$field}.required"] ?? "The {$field} field is required.";
-                }
-                if (str_starts_with($r, 'min:') && is_string($value)) {
-                    $min = (int) substr($r, 4);
-                    if (mb_strlen($value) < $min) {
-                        $errors[$field][] = $this->messages()["{$field}.min"] ?? "The {$field} must be at least {$min} characters.";
-                    }
-                }
-                if ($r === 'email' && $value !== null && $value !== '' && ! filter_var((string) $value, FILTER_VALIDATE_EMAIL)) {
-                    $errors[$field][] = $this->messages()["{$field}.email"] ?? "The {$field} must be a valid email.";
-                }
-            }
-        }
+        $errors = $this->runSanitizer($state, $normalized);
 
         if ($errors !== []) {
             $this->errorBag = $errors;
@@ -427,7 +412,79 @@ abstract class Component
 
         $this->resetValidation();
 
-        return array_intersect_key($state, $rules);
+        return array_intersect_key($state, $normalized);
+    }
+
+    /**
+     * @param array<string, string|list<string>|Bind> $rules
+     * @return array<string, string|Bind>
+     */
+    private function normalizeValidationRules(array $rules): array
+    {
+        $normalized = [];
+
+        foreach ($rules as $field => $rule) {
+            if ($rule instanceof Bind) {
+                $normalized[$field] = $rule;
+
+                continue;
+            }
+
+            $normalized[$field] = is_array($rule) ? implode('|', $rule) : (string) $rule;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param array<string, mixed> $state
+     * @param array<string, string|Bind> $rules
+     * @return array<string, list<string>>
+     */
+    private function runSanitizer(array $state, array $rules): array
+    {
+        $custom = $this->messages();
+
+        if ($custom === []) {
+            $sanitizer = new Sanitizer($state, $rules);
+            if ($sanitizer->validate()) {
+                return [];
+            }
+
+            return $sanitizer->errors()['errors'] ?? [];
+        }
+
+        // Re-run per rule so messages() keys like "email.required" map correctly.
+        $errors = [];
+
+        foreach ($rules as $field => $ruleSpec) {
+            if ($ruleSpec instanceof Bind) {
+                $message = $ruleSpec->evaluate($field, $state);
+                if ($message !== null) {
+                    $errors[$field][] = $message;
+                }
+
+                continue;
+            }
+
+            foreach (explode('|', $ruleSpec) as $rule) {
+                $rule = trim($rule);
+                if ($rule === '') {
+                    continue;
+                }
+
+                $probe = new Sanitizer($state, [$field => $rule]);
+                if ($probe->validate()) {
+                    continue;
+                }
+
+                $ruleName = explode(':', $rule, 2)[0];
+                $fallback = $probe->errors()['errors'][$field][0] ?? 'Validation failed.';
+                $errors[$field][] = $custom["{$field}.{$ruleName}"] ?? $fallback;
+            }
+        }
+
+        return $errors;
     }
 
     protected function validateOnly(string $field): void

@@ -72,6 +72,8 @@ Do not wrap the root yourself with `data-ripple`. `mount()` adds that.
 
 ## 4. Mount on a page
 
+**Island** (embed in an existing view):
+
 ```odo
 [[! \Doppar\Ripple\Facade\Ripple::mount(\App\Ripple\Counter::class) !]]
 ```
@@ -81,6 +83,14 @@ Pass constructor / mount params as a second argument when needed:
 ```php
 Ripple::mount(\App\Ripple\Counter::class, ['count' => 10]);
 ```
+
+**Full page** (component owns the route):
+
+```php
+Route::ripple('/counter', \App\Ripple\Counter::class)->name('counter');
+```
+
+Optional `#[Layout]` / `#[Title]` on the component. See [Navigation](navigation.md#full-page-routes-routeripple).
 
 Ensure [scripts are in the layout](installation.md#load-the-client).
 

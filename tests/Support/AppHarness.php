@@ -5,6 +5,8 @@ namespace Doppar\Ripple\Tests\Support;
 use Phaseolies\DI\Container;
 use Phaseolies\Http\InputBag;
 use Phaseolies\Http\Request;
+use Phaseolies\Translation\FileLoader;
+use Phaseolies\Translation\Translator;
 
 /**
  * Minimal container so package tests can call storage_path() / request() without a full Doppar app.
@@ -20,6 +22,7 @@ final class AppHarness extends Container
         @mkdir($this->base . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'app', 0775, true);
         @mkdir($this->base . DIRECTORY_SEPARATOR . 'runtime' . DIRECTORY_SEPARATOR . 'config', 0775, true);
         self::setInstance($this);
+        $this->bindTranslator();
     }
 
     public function basePath(string $path = ''): string
@@ -56,6 +59,12 @@ final class AppHarness extends Container
             self::forgetInstance();
         }
         $this->rmTree($this->base);
+    }
+
+    private function bindTranslator(): void
+    {
+        $langPath = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'fixtures' . DIRECTORY_SEPARATOR . 'lang';
+        $this->instance('translator', new Translator(new FileLoader($langPath), 'en'));
     }
 
     private function rmTree(string $dir): void
