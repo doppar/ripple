@@ -21,11 +21,13 @@ final class RippleRouter extends Router
      */
     public function ripple(string $uri, string $component): self
     {
-        return $this->get($uri, function (Request $request) use ($component) {
+        $this->get($uri, function (Request $request) use ($component) {
             /** @var ComponentManager $manager */
             $manager = app(ComponentManager::class);
 
             return $manager->renderPage($component, $request->getRouteParams());
         });
+
+        return $this;
     }
 }

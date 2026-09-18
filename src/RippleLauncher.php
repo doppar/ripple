@@ -31,7 +31,7 @@ class RippleLauncher extends PackageServiceLauncher
         $this->app->singleton(Controller::class, fn () => new RippleViewController());
 
         // Route::ripple() — replace Router before middleware/routes attach (shares static $routes)
-        $existing = $this->app->make('route');
+        $existing = $this->app->router;
         if (! $existing instanceof RippleRouter) {
             $router = new RippleRouter($existing->getGateway());
             $this->app->instance('route', $router);
