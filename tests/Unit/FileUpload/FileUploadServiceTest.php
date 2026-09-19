@@ -106,4 +106,86 @@ final class FileUploadServiceTest extends TestCase
         $this->assertNull($service->moveToPermanent('missing', 'x'));
         $this->assertTrue($service->deleteTemporary('missing'));
     }
+
+    public function test_meta_id_with_path_traversal_is_rejected(): void
+    {
+        $service = new FileUploadService();
+        $this->assertNull($service->getTemporaryPath('../etc/passwd'));
+        $this->assertNull($service->getTemporaryAbsolutePath('abcd/../efgh'));
+        $this->assertNull($service->getTemporaryFileOriginalName('..'));
+    }
+
+    public function test_use_original_name_rejects_path_traversal(): void
+    {
+        $service = new FileUploadService();
+        $tmp = tempnam(sys_get_temp_dir(), 'up');
+        self::assertNotFalse($tmp);
+        file_put_contents($tmp, 'evil');
+
+        $file = new class ($tmp) {
+            public function __construct(private string $path)
+            {
+            }
+
+            public function getClientOriginalName(): string
+            {
+                return 'safe.txt';
+            }
+
+            public function getRealPath(): string
+            {
+                return $this->path;
+            }
+        };
+
+        $id = $service->storeTemporary($file, 'comp-evil');
+        $metaPath = storage_path('app/ripple/meta/' . $id . '.json');
+        $meta = json_decode((string) file_get_contents($metaPath), true);
+        $meta['original'] = '../../../public/shell.php';
+        file_put_contents($metaPath, json_encode($meta));
+
+        $outside = storage_path('app/public/shell.php');
+        @unlink($outside);
+
+        try {
+            $this->expectException(\InvalidArgumentException::class);
+            $this->expectExceptionMessageIsOrContains('Invalid upload filename');
+            $service->moveToPermanent($id, 'ripple/permanent/out.txt', useOriginalName: true);
+        } finally {
+            $this->assertFileDoesNotExist($outside);
+            @unlink($tmp);
+        }
+    }
+
+    public function test_use_original_name_with_safe_basename(): void
+    {
+        $service = new FileUploadService();
+        $tmp = tempnam(sys_get_temp_dir(), 'up');
+        self::assertNotFalse($tmp);
+        file_put_contents($tmp, 'ok');
+
+        $file = new class ($tmp) {
+            public function __construct(private string $path)
+            {
+            }
+
+            public function getClientOriginalName(): string
+            {
+                return 'report.pdf';
+            }
+
+            public function getRealPath(): string
+            {
+                return $this->path;
+            }
+        };
+
+        $id = $service->storeTemporary($file, 'comp-ok');
+        $moved = $service->moveToPermanent($id, 'ripple/permanent/placeholder.bin', useOriginalName: true);
+
+        $this->assertSame('ripple/permanent/report.pdf', $moved);
+        $this->assertFileExists(storage_path('app/ripple/permanent/report.pdf'));
+
+        @unlink($tmp);
+    }
 }

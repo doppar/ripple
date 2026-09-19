@@ -11,4 +11,10 @@ final class ConfigTest extends TestCase
     {
         $this->assertSame('fallback', Config::get('ripple.missing.key', 'fallback'));
     }
+
+    public function test_override_takes_precedence(): void
+    {
+        Config::set('ripple.security.verify_state', 'property-updates');
+        $this->assertSame('property-updates', Config::get('ripple.security.verify_state', 'strict'));
+    }
 }

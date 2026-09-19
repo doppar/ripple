@@ -170,14 +170,18 @@ abstract class Component
 
     /**
      * @param array<string, mixed> $state
+     * @param bool $allowLocked Apply #[Locked] props from $state (only after HMAC verify).
      */
-    public function hydrate(array $state): void
+    public function hydrate(array $state, bool $allowLocked = false): void
     {
         foreach ($state as $key => $value) {
             if (! property_exists($this, $key)) {
                 continue;
             }
             if (in_array($key, $this->hidden, true) || in_array($key, $this->computed, true)) {
+                continue;
+            }
+            if (! $allowLocked && in_array($key, $this->locked, true)) {
                 continue;
             }
             $property = new ReflectionProperty($this, $key);

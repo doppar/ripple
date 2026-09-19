@@ -36,12 +36,12 @@ final class ComponentHydrator
      * @param class-string<Component> $class
      * @param array<string, mixed> $state
      */
-    public function hydrate(string $class, array $state, string $id): Component
+    public function hydrate(string $class, array $state, string $id, bool $allowLocked = false): Component
     {
         /** @var Component $instance */
         $instance = new $class();
         $instance->setId($id);
-        $instance->hydrate($state);
+        $instance->hydrate($state, $allowLocked);
 
         return $instance;
     }

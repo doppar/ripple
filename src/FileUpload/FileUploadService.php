@@ -11,9 +11,10 @@ final class FileUploadService
         $disk = $this->diskName();
         $base = trim((string) Config::get('ripple.file_upload.temporary_path', 'ripple/temp'), '/');
         $id = bin2hex(random_bytes(16));
-        $original = method_exists($file, 'getClientOriginalName')
+        $rawOriginal = method_exists($file, 'getClientOriginalName')
             ? (string) $file->getClientOriginalName()
             : 'upload.bin';
+        $original = $this->safeBasename($rawOriginal) ?? 'upload.bin';
         $ext = pathinfo($original, PATHINFO_EXTENSION);
         $filename = $id . ($ext !== '' ? '.' . $ext : '');
         $relative = $base . '/' . $componentId . '/' . $filename;
@@ -84,10 +85,18 @@ final class FileUploadService
         }
 
         if ($useOriginalName && ! empty($meta['original'])) {
-            $destinationPath = rtrim(dirname($destinationPath), '/') . '/' . $meta['original'];
+            $safe = $this->safeBasename((string) $meta['original']);
+            if ($safe === null) {
+                throw new \InvalidArgumentException('Invalid upload filename.');
+            }
+            $destinationPath = rtrim(dirname($destinationPath), '/') . '/' . $safe;
         }
 
         $destinationPath = ltrim(str_replace('\\', '/', $destinationPath), '/');
+        if (str_contains($destinationPath, '..')) {
+            throw new \InvalidArgumentException('Invalid upload destination path.');
+        }
+
         $dest = $this->absolutePath($destinationPath, $destDisk);
         $dir = dirname($dest);
         if (! is_dir($dir)) {
@@ -184,6 +193,10 @@ final class FileUploadService
      */
     private function readMeta(string $id): ?array
     {
+        if (! $this->isSafeMetaId($id)) {
+            return null;
+        }
+
         $file = $this->metaDir() . '/' . $id . '.json';
         if (! is_file($file)) {
             return null;
@@ -195,6 +208,10 @@ final class FileUploadService
 
     private function deleteMeta(string $id): void
     {
+        if (! $this->isSafeMetaId($id)) {
+            return;
+        }
+
         $file = $this->metaDir() . '/' . $id . '.json';
         if (is_file($file)) {
             @unlink($file);
@@ -205,5 +222,34 @@ final class FileUploadService
     {
         // Meta stays on the configured upload disk under ripple/meta
         return $this->absolutePath('ripple/meta');
+    }
+
+    private function isSafeMetaId(string $id): bool
+    {
+        return $id !== ''
+            && ! str_contains($id, '..')
+            && ! str_contains($id, '/')
+            && ! str_contains($id, '\\')
+            && ctype_xdigit($id);
+    }
+
+    private function safeBasename(string $name): ?string
+    {
+        $normalized = str_replace('\\', '/', $name);
+        if (
+            $normalized === ''
+            || str_contains($normalized, '..')
+            || str_starts_with($normalized, '/')
+            || preg_match('#^[A-Za-z]:/#', $normalized) === 1
+        ) {
+            return null;
+        }
+
+        $base = basename($normalized);
+        if ($base === '' || $base === '.' || $base === '..') {
+            return null;
+        }
+
+        return $base;
     }
 }

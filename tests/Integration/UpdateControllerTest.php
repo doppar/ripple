@@ -14,6 +14,14 @@ use ReflectionProperty;
 
 final class UpdateControllerTest extends TestCase
 {
+    private StateSigner $signer;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->signer = new StateSigner('ctrl-key');
+    }
+
     private function requestWith(array $body): Request
     {
         $request = new Request();
@@ -25,19 +33,19 @@ final class UpdateControllerTest extends TestCase
 
     private function controller(): UpdateController
     {
-        return new UpdateController(new ComponentManager(signer: new StateSigner('ctrl-key')));
+        return new UpdateController(new ComponentManager(signer: $this->signer));
     }
 
     public function test_handle_accepts_short_keys_and_returns_deltas(): void
     {
-        $response = $this->controller()->handle($this->requestWith([
+        $response = $this->controller()->handle($this->requestWith($this->withSignature([
             'i' => 'int-1',
             'n' => CounterComponent::class,
             't' => 'a',
             'a' => 'increment',
             'g' => [],
             's' => ['count' => 4, 'secret' => 'nope'],
-        ]));
+        ], $this->signer)));
         $payload = $response->getData();
 
         $this->assertIsArray($payload);
@@ -50,14 +58,14 @@ final class UpdateControllerTest extends TestCase
 
     public function test_handle_returns_422_on_validation(): void
     {
-        $response = $this->controller()->handle($this->requestWith([
+        $response = $this->controller()->handle($this->requestWith($this->withSignature([
             'i' => 'f1',
             'n' => FormComponent::class,
             't' => 'a',
             'a' => 'save',
             'g' => [],
             's' => ['email' => '', 'note' => ''],
-        ]));
+        ], $this->signer)));
 
         $this->assertSame(422, $response->getStatusCode());
         $payload = $response->getData();
@@ -82,30 +90,30 @@ final class UpdateControllerTest extends TestCase
     public function test_unknown_action_bubbles_for_doppar_error_handler(): void
     {
         $this->expectException(\BadMethodCallException::class);
-        $this->expectExceptionMessage('decrementt');
+        $this->expectExceptionMessageIsOrContains('decrementt');
 
-        $this->controller()->handle($this->requestWith([
+        $this->controller()->handle($this->requestWith($this->withSignature([
             'i' => 'x',
             'n' => CounterComponent::class,
             't' => 'a',
             'a' => 'decrementt',
             'g' => [],
             's' => ['count' => 0, 'secret' => 'nope'],
-        ]));
+        ], $this->signer)));
     }
 
     public function test_unknown_component_bubbles_for_doppar_error_handler(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Missing\\Component');
+        $this->expectExceptionMessageIsOrContains('Missing\\Component');
 
-        $this->controller()->handle($this->requestWith([
+        $this->controller()->handle($this->requestWith($this->withSignature([
             'i' => 'x',
             'n' => 'Missing\\Component',
             'a' => null,
             'g' => [],
             's' => [],
-        ]));
+        ], $this->signer)));
     }
 
     public function test_empty_body_still_requires_component_name(): void

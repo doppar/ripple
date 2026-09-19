@@ -22,6 +22,24 @@ final class ComponentSecurityTest extends TestCase
         $c->updateProperty('secret', 'hacked');
     }
 
+    public function test_hydrate_ignores_locked_mutation_by_default(): void
+    {
+        $c = new CounterComponent();
+        $c->hydrate(['secret' => 'FORGED', 'count' => 1]);
+
+        $this->assertSame('nope', $c->secret);
+        $this->assertSame(1, $c->count);
+    }
+
+    public function test_hydrate_applies_locked_when_explicitly_allowed(): void
+    {
+        $c = new CounterComponent();
+        $c->hydrate(['secret' => 'from-signed-state', 'count' => 2], allowLocked: true);
+
+        $this->assertSame('from-signed-state', $c->secret);
+        $this->assertSame(2, $c->count);
+    }
+
     public function test_signer_round_trip(): void
     {
         $signer = new StateSigner('test-key');
@@ -49,11 +67,23 @@ final class ComponentSecurityTest extends TestCase
         );
     }
 
-    public function test_signer_from_config_falls_back(): void
+    public function test_signer_from_config_falls_back_outside_production(): void
     {
+        $this->setRippleConfig('app.env', 'local');
         $signer = StateSigner::fromConfig();
         $sig = $signer->sign(['x' => 1], 'c1');
         $this->assertTrue($signer->verify(['x' => 1], 'c1', $sig));
+    }
+
+    public function test_signer_from_config_fails_closed_in_production_without_key(): void
+    {
+        $this->setRippleConfig('app.env', 'production');
+        $this->setRippleConfig('ripple.security.signing_key', '');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageIsOrContains('Ripple signing key is not configured');
+
+        StateSigner::fromConfig();
     }
 
     public function test_fingerprint_changes_with_state(): void

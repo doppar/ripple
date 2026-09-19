@@ -90,14 +90,14 @@ final class ComponentManagerTest extends TestCase
 
     public function test_update_returns_short_wire_payload_with_delta(): void
     {
-        $result = $this->manager->update([
+        $result = $this->manager->update($this->withSignature([
             'i' => 'abc',
             'n' => CounterComponent::class,
             't' => 'a',
             'a' => 'increment',
             'g' => [],
             's' => ['count' => 0, 'secret' => 'nope'],
-        ]);
+        ], $this->manager->signer()));
 
         $this->assertSame('abc', $result['i']);
         $this->assertSame(CounterComponent::class, $result['n']);
@@ -115,14 +115,14 @@ final class ComponentManagerTest extends TestCase
 
     public function test_update_action_with_args(): void
     {
-        $result = $this->manager->update([
+        $result = $this->manager->update($this->withSignature([
             'i' => 'a1',
             'n' => ArgComponent::class,
             't' => 'a',
             'a' => 'bump',
             'g' => [3],
             's' => ['n' => 1, 'label' => ''],
-        ]);
+        ], $this->manager->signer()));
 
         $this->assertSame(4, $result['s']['n']);
     }
@@ -149,7 +149,7 @@ final class ComponentManagerTest extends TestCase
     public function test_property_update_requires_valid_signature(): void
     {
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Invalid Ripple state signature');
+        $this->expectExceptionMessageIsOrContains('Invalid Ripple state signature');
 
         $this->manager->update([
             'i' => 'abc',
@@ -204,14 +204,14 @@ final class ComponentManagerTest extends TestCase
 
     public function test_validation_errors_soft_fail_with_e(): void
     {
-        $result = $this->manager->update([
+        $result = $this->manager->update($this->withSignature([
             'i' => 'f1',
             'n' => FormComponent::class,
             't' => 'a',
             'a' => 'save',
             'g' => [],
             's' => ['email' => '', 'note' => ''],
-        ]);
+        ], $this->manager->signer()));
 
         $this->assertFalse($result['ok']);
         $this->assertArrayHasKey('e', $result);
@@ -220,14 +220,14 @@ final class ComponentManagerTest extends TestCase
 
     public function test_redirect_payload(): void
     {
-        $result = $this->manager->update([
+        $result = $this->manager->update($this->withSignature([
             'i' => 'f1',
             'n' => FormComponent::class,
             't' => 'a',
             'a' => 'goAway',
             'g' => [],
             's' => ['email' => 'a@b.co', 'note' => ''],
-        ]);
+        ], $this->manager->signer()));
 
         $this->assertTrue($result['ok']);
         $this->assertSame('/done', $result['rd']['u'] ?? null);
@@ -237,14 +237,14 @@ final class ComponentManagerTest extends TestCase
     public function test_redirect_payload_hard_disables_spa(): void
     {
         $state = (new KitchenSinkComponent())->getState();
-        $result = $this->manager->update([
+        $result = $this->manager->update($this->withSignature([
             'i' => 'k1',
             'n' => KitchenSinkComponent::class,
             't' => 'a',
             'a' => 'leave',
             'g' => [],
             's' => $state,
-        ]);
+        ], $this->manager->signer()));
 
         $this->assertTrue($result['ok']);
         $this->assertSame('/elsewhere', $result['rd']['u'] ?? null);
@@ -253,14 +253,14 @@ final class ComponentManagerTest extends TestCase
 
     public function test_dispatch_in_response(): void
     {
-        $result = $this->manager->update([
+        $result = $this->manager->update($this->withSignature([
             'i' => 'f1',
             'n' => FormComponent::class,
             't' => 'a',
             'a' => 'save',
             'g' => [],
             's' => ['email' => 'a@b.co', 'note' => ''],
-        ]);
+        ], $this->manager->signer()));
 
         $this->assertTrue($result['ok']);
         $this->assertNotEmpty($result['ev'] ?? []);
@@ -272,14 +272,15 @@ final class ComponentManagerTest extends TestCase
     public function test_query_string_included_when_url_props_exist(): void
     {
         $state = (new KitchenSinkComponent())->getState();
-        $result = $this->manager->update([
+        $signedState = array_merge($state, ['filter' => 'open', 'name' => 'x']);
+        $result = $this->manager->update($this->withSignature([
             'i' => 'k1',
             'n' => KitchenSinkComponent::class,
             't' => 'a',
             'a' => 'shout',
             'g' => ['hi'],
-            's' => array_merge($state, ['filter' => 'open', 'name' => 'x']),
-        ]);
+            's' => $signedState,
+        ], $this->manager->signer()));
 
         $this->assertArrayHasKey('qs', $result);
         $this->assertSame('open', $result['qs']['filter']);

@@ -107,9 +107,14 @@ final class ComponentManager
         }
 
         $class = $this->resolveClass($name);
-        $this->verifySignature($state, $id, $payload);
+        $verified = $this->verifySignature($state, $id, $payload);
 
-        $instance = $this->hydrator->hydrate($class, $state, $id !== '' ? $id : bin2hex(random_bytes(8)));
+        $instance = $this->hydrator->hydrate(
+            $class,
+            $state,
+            $id !== '' ? $id : bin2hex(random_bytes(8)),
+            allowLocked: $verified,
+        );
         if (isset($payload['er']) && is_array($payload['er'])) {
             /** @var array<string, list<string>> $er */
             $er = $payload['er'];
@@ -382,10 +387,11 @@ final class ComponentManager
     /**
      * @param array<string, mixed> $state
      * @param array<string, mixed> $payload
+     * @return bool True when the payload signature was verified (Locked props may be trusted).
      */
-    private function verifySignature(array $state, string $id, array $payload): void
+    private function verifySignature(array $state, string $id, array $payload): bool
     {
-        $mode = Config::get('ripple.security.verify_state', 'property-updates');
+        $mode = Config::get('ripple.security.verify_state', 'strict');
         $type = (string) ($payload['t'] ?? 'a');
         $shouldVerify = match ($mode) {
             'strict', true, 'true' => true,
@@ -394,13 +400,15 @@ final class ComponentManager
         };
 
         if (! $shouldVerify) {
-            return;
+            return false;
         }
 
         $signature = (string) ($payload['x'] ?? '');
         if ($signature === '' || ! $this->signer->verify($state, $id, $signature)) {
             throw new \RuntimeException('Invalid Ripple state signature.');
         }
+
+        return true;
     }
 
     /**

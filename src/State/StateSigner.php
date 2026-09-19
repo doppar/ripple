@@ -12,12 +12,31 @@ final class StateSigner
 
     public static function fromConfig(): self
     {
-        $key = (string) (Config::get('ripple.security.signing_key')
+        $configured = Config::get('ripple.security.signing_key')
             ?? Config::get('app.key')
-            ?? (function_exists('env') ? env('APP_KEY') : null)
-            ?? 'ripple-dev-key');
+            ?? (function_exists('env') ? env('APP_KEY') : null);
 
-        return new self($key !== '' ? $key : 'ripple-dev-key');
+        $key = is_string($configured) ? $configured : '';
+        if ($key === '' || $key === 'ripple-dev-key') {
+            if (self::isProduction()) {
+                throw new \RuntimeException(
+                    'Ripple signing key is not configured. Set RIPPLE_SIGNING_KEY or APP_KEY.',
+                );
+            }
+
+            return new self('ripple-dev-key');
+        }
+
+        return new self($key);
+    }
+
+    private static function isProduction(): bool
+    {
+        $env = Config::get('app.env')
+            ?? (function_exists('env') ? env('APP_ENV') : null)
+            ?? 'local';
+
+        return in_array(strtolower((string) $env), ['production', 'prod'], true);
     }
 
     /**

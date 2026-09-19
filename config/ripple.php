@@ -84,15 +84,16 @@ return [
     |              null. Prefer a dedicated RIPPLE_SIGNING_KEY in production.
     |
     | verify_state:
-    |   - "strict"            → verify signature on every update
-    |   - "property-updates"  → verify only on property sync (t=u)
+    |   - "strict"            → verify signature on every update (default)
+    |   - "property-updates"  → verify only on property sync (t=u); Locked
+    |                           props are still ignored on unsigned actions
     |   - "none"              → skip verification (local/dev only)
     |
     */
 
     'security' => [
         'signing_key' => env('RIPPLE_SIGNING_KEY'),
-        'verify_state' => env('RIPPLE_VERIFY_STATE', 'property-updates'),
+        'verify_state' => env('RIPPLE_VERIFY_STATE', 'strict'),
     ],
 
     /*
