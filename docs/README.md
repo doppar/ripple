@@ -26,3 +26,4 @@ Guides for building Doppar apps with Ripple. Read in order if you are new; jump 
 ## Reference
 
 13. [Configuration](configuration.md)
+14. [Testing](testing.md)

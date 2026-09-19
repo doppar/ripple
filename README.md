@@ -100,4 +100,5 @@ Full guides live in [`docs/`](docs/README.md):
 | [File uploads](docs/file-uploads.md) | Temp upload and permanent store |
 | [Navigation](docs/navigation.md) | Soft and hard redirects |
 | [Configuration](docs/configuration.md) | `config/ripple.php` reference |
+| [Testing](docs/testing.md) | `Ripple::test()` and assertions |
 

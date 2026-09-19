@@ -11,6 +11,7 @@ use Doppar\Ripple\Exceptions\ValidationException;
 use Doppar\Ripple\State\ComponentHydrator;
 use Doppar\Ripple\State\StateSigner;
 use Doppar\Ripple\Support\Config;
+use Doppar\Ripple\Testing\Testable;
 use Doppar\Ripple\VDom\HtmlParser;
 use Phaseolies\Http\Response;
 use ReflectionClass;
@@ -213,6 +214,32 @@ final class ComponentManager
         $class = $this->resolveClass($component);
 
         return $this->hydrator->mount($class, $params);
+    }
+
+    /**
+     * @param class-string<Component>|string $component
+     * @param array<string, mixed> $params
+     */
+    public function test(string $component, array $params = []): Testable
+    {
+        return Testable::create($this, $this->resolveClass($component), $params);
+    }
+
+    /**
+     * Render component HTML without the data-ripple wrapper (for testing / previews).
+     */
+    public function html(Component $instance): string
+    {
+        return $this->renderHtml($instance);
+    }
+
+    /**
+     * @param class-string<Component>|string $component
+     * @param array<string, mixed> $state
+     */
+    public function hydrateForTest(string $component, array $state, string $id): Component
+    {
+        return $this->hydrator->hydrate($this->resolveClass($component), $state, $id, allowLocked: true);
     }
 
     public function scripts(): string
