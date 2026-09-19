@@ -11,6 +11,7 @@ use Phaseolies\Facade\BaseFacade;
  * @method static string scripts()
  * @method static void register(string $alias, string $class)
  * @method static array update(array $payload)
+ * @method static array loadLazy(string $component, array $params = [], ?string $id = null)
  * @method static \Doppar\Ripple\Testing\Testable test(string $component, array $params = [])
  *
  * @see \Doppar\Ripple\ComponentManager

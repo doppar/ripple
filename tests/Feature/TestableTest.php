@@ -6,6 +6,7 @@ use Doppar\Ripple\ComponentManager;
 use Doppar\Ripple\State\StateSigner;
 use Doppar\Ripple\Tests\Fixtures\CounterComponent;
 use Doppar\Ripple\Tests\Fixtures\FormComponent;
+use Doppar\Ripple\Tests\Fixtures\LazyDeskComponent;
 use Doppar\Ripple\Tests\TestCase;
 
 final class TestableTest extends TestCase
@@ -81,5 +82,34 @@ final class TestableTest extends TestCase
         $this->manager->test(FormComponent::class)
             ->call('goAway')
             ->assertNotDispatched('saved');
+    }
+
+    public function test_lazy_component_loads_full_html(): void
+    {
+        $this->manager->test(LazyDeskComponent::class, ['title' => 'desk'])
+            ->assertOk()
+            ->assertSee('Loaded desk', escape: false);
+    }
+
+    public function test_lazy_mount_placeholder_then_load_lazy(): void
+    {
+        $placeholder = $this->manager->mount(LazyDeskComponent::class, ['title' => 'x']);
+
+        $this->assertStringContainsString('data-ripple-lazy', $placeholder);
+        $this->assertStringContainsString('Loading desk…', $placeholder);
+        $this->assertStringContainsString('data-ripple-params=', $placeholder);
+        $this->assertStringNotContainsString('Loaded desk', $placeholder);
+
+        preg_match('/data-ripple-id="([^"]+)"/', $placeholder, $m);
+        $id = $m[1] ?? 'lazy-test';
+
+        $result = $this->manager->loadLazy(LazyDeskComponent::class, ['title' => 'x'], $id);
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame($id, $result['i']);
+        $this->assertStringContainsString('Loaded desk', $result['h']);
+        $this->assertArrayHasKey('x', $result);
+        $this->assertArrayHasKey('f', $result);
+        $this->assertArrayHasKey('s', $result);
     }
 }
