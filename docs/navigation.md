@@ -71,8 +71,6 @@ The layout must `#yield('content')` (and usually `#yield('title')`) and include 
 
 Island mounts (`Ripple::mount()` inside a view) still work; use `Route::ripple()` when the component *is* the page.
 
-**Demo:** `/ripple/page` (`App\Ripple\FullPageDemo`) — registered in `runtime/routes/web.php`.
-
 ## Browser history
 
 Back and forward trigger the same soft navigation path (`popstate`). Same-origin only; other origins fall back to a hard assign.

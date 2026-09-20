@@ -58,6 +58,8 @@ public function save(): void
 }
 ```
 
+With `useOriginalName: true` only the directory of the destination is used; the file name becomes the (sanitised) original client name.
+
 Useful `FileUploadService` methods:
 
 | Method | Purpose |

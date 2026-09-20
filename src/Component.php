@@ -257,9 +257,11 @@ abstract class Component
     }
 
     /**
+     * @param string|null $action
      * @param list<mixed> $args
+     * @param string|null $event Event being delivered to a #[On] listener, if any
      */
-    public function callAction(?string $action, array $args = []): mixed
+    public function callAction(?string $action, array $args = [], ?string $event = null): mixed
     {
         if ($action === null || $action === '') {
             return null;
@@ -274,13 +276,20 @@ abstract class Component
             throw new \BadMethodCallException("Ripple action [{$action}] must be public on " . static::class);
         }
 
-        if ($method->getAttributes(Invokable::class) === []) {
+        // #[Invokable] opens a method to direct browser calls. A #[On] listener is reachable
+        // only as a listener: the browser delivers events by naming the event it is delivering.
+        if ($method->getAttributes(Invokable::class) === [] && ! $this->listensTo($event, $action)) {
             throw new \BadMethodCallException(
                 "Ripple action [{$action}] is not invokable. Add #[Invokable] on " . static::class,
             );
         }
 
         return $this->{$action}(...$args);
+    }
+
+    private function listensTo(?string $event, string $method): bool
+    {
+        return $event !== null && in_array($method, $this->eventListeners[$event] ?? [], true);
     }
 
     /**
@@ -352,6 +361,11 @@ abstract class Component
     {
         $query = [];
         foreach ($this->urlProperties as $property => $config) {
+            // history: false → still read from the URL on first render, never written back
+            if (! $config['history']) {
+                continue;
+            }
+
             $as = $config['as'];
             $value = property_exists($this, $property) ? $this->{$property} : null;
 

@@ -24,7 +24,7 @@ export function handleEvents(sourceRoot, data, callAction) {
       }
       const methods = listeners[ev.name] || [];
       for (const method of methods) {
-        callAction(root, method, ev.params || []);
+        callAction(root, method, ev.params || [], ev.name);
       }
     });
   }

@@ -16,7 +16,7 @@ public function onAnnounce(string $message = '', int $n = 0): void
 
 Listeners are public methods. They run when a matching event is dispatched to that component (or globally, depending on how it was sent).
 
-Mark the listener `#[Invokable]` only if the browser should also call it directly.
+The browser delivers each event by calling the listener and naming the event it is delivering, so a listener needs only `#[On]`. It cannot be called directly by the browser unless you also mark it `#[Invokable]`, and naming an event never unlocks a method that is not a listener of that event.
 
 ## Dispatch from a component
 

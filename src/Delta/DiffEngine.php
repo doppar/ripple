@@ -9,6 +9,9 @@ use Doppar\Ripple\VDom\Node;
  */
 final class DiffEngine
 {
+    /** Largest LCS table (old * new children) worth building; bigger lists diff positionally. */
+    private const LCS_CELL_LIMIT = 40000;
+
     public function diff(?Node $old, ?Node $new, string $path = ''): Patch
     {
         $patch = new Patch();
@@ -64,14 +67,166 @@ final class DiffEngine
             $patch->add(new Op(Op::UPDATE_ATTRS, $path, ['attrs' => $attrDelta]));
         }
 
-        $oldKids = $old->children;
-        $newKids = $new->children;
-        $max = max(count($oldKids), count($newKids));
+        $this->walkChildren($old->children, $new->children, $path, $patch);
+    }
 
-        for ($i = 0; $i < $max; $i++) {
-            $childPath = $path === '' ? (string) $i : $path . '.' . $i;
-            $this->walk($oldKids[$i] ?? null, $newKids[$i] ?? null, $childPath, $patch);
+    /**
+     * Diff two child lists. Children that survive on both sides (same tag, same key) are
+     * aligned with a longest-common-subsequence match and diffed in place, so inserting or
+     * removing one node in the middle does not make every following sibling look changed
+     * (which would replace live nodes, including an input the user is typing in).
+     *
+     * Ops are emitted in document order and every path is valid at the moment the op runs:
+     * removals inside a gap go highest index first, insertions lowest index first.
+     *
+     * @param list<Node> $oldKids
+     * @param list<Node> $newKids
+     */
+    private function walkChildren(array $oldKids, array $newKids, string $path, Patch $patch): void
+    {
+        $oldCount = count($oldKids);
+        $newCount = count($newKids);
+
+        $oi = 0;
+        $nj = 0;
+
+        foreach ([...$this->anchors($oldKids, $newKids), [$oldCount, $newCount]] as [$ai, $aj]) {
+            $this->walkGap($oldKids, $newKids, $oi, $ai, $nj, $aj, $path, $patch);
+
+            if ($ai < $oldCount) {
+                $this->walk($oldKids[$ai], $newKids[$aj], $this->childPath($path, $aj), $patch);
+            }
+
+            $oi = $ai + 1;
+            $nj = $aj + 1;
         }
+    }
+
+    /**
+     * Old children [$oi, $ai) became new children [$nj, $aj). Pair them up positionally,
+     * then remove the surplus old nodes or insert the surplus new ones.
+     *
+     * @param list<Node> $oldKids
+     * @param list<Node> $newKids
+     */
+    private function walkGap(array $oldKids, array $newKids, int $oi, int $ai, int $nj, int $aj, string $path, Patch $patch): void
+    {
+        $removed = $ai - $oi;
+        $added = $aj - $nj;
+        $paired = min($removed, $added);
+
+        for ($t = 0; $t < $paired; $t++) {
+            $this->walk($oldKids[$oi + $t], $newKids[$nj + $t], $this->childPath($path, $nj + $t), $patch);
+        }
+
+        for ($t = $removed - 1; $t >= $paired; $t--) {
+            $this->walk($oldKids[$oi + $t], null, $this->childPath($path, $nj + $t), $patch);
+        }
+
+        for ($t = $paired; $t < $added; $t++) {
+            $this->walk(null, $newKids[$nj + $t], $this->childPath($path, $nj + $t), $patch);
+        }
+    }
+
+    /**
+     * Matched (oldIndex, newIndex) pairs, increasing on both sides. Common head and tail are
+     * matched directly; the middle uses an LCS table, skipped when it would be too large
+     * (the middle then falls back to positional pairing).
+     *
+     * @param list<Node> $oldKids
+     * @param list<Node> $newKids
+     * @return list<array{int, int}>
+     */
+    private function anchors(array $oldKids, array $newKids): array
+    {
+        $old = array_map($this->signature(...), $oldKids);
+        $new = array_map($this->signature(...), $newKids);
+        $n = count($old);
+        $m = count($new);
+
+        $head = 0;
+        while ($head < $n && $head < $m && $old[$head] === $new[$head]) {
+            $head++;
+        }
+
+        $tail = 0;
+        while ($tail < $n - $head && $tail < $m - $head && $old[$n - 1 - $tail] === $new[$m - 1 - $tail]) {
+            $tail++;
+        }
+
+        $pairs = [];
+        for ($i = 0; $i < $head; $i++) {
+            $pairs[] = [$i, $i];
+        }
+
+        $rows = $n - $head - $tail;
+        $cols = $m - $head - $tail;
+
+        if ($rows > 0 && $cols > 0 && $rows * $cols <= self::LCS_CELL_LIMIT) {
+            foreach ($this->lcs(array_slice($old, $head, $rows), array_slice($new, $head, $cols)) as [$i, $j]) {
+                $pairs[] = [$head + $i, $head + $j];
+            }
+        }
+
+        for ($k = $tail; $k > 0; $k--) {
+            $pairs[] = [$n - $k, $m - $k];
+        }
+
+        return $pairs;
+    }
+
+    /**
+     * @param list<string> $old
+     * @param list<string> $new
+     * @return list<array{int, int}>
+     */
+    private function lcs(array $old, array $new): array
+    {
+        $n = count($old);
+        $m = count($new);
+
+        $len = array_fill(0, $n + 1, array_fill(0, $m + 1, 0));
+        for ($i = $n - 1; $i >= 0; $i--) {
+            for ($j = $m - 1; $j >= 0; $j--) {
+                $len[$i][$j] = $old[$i] === $new[$j]
+                    ? $len[$i + 1][$j + 1] + 1
+                    : max($len[$i + 1][$j], $len[$i][$j + 1]);
+            }
+        }
+
+        $pairs = [];
+        $i = 0;
+        $j = 0;
+        while ($i < $n && $j < $m) {
+            if ($old[$i] === $new[$j]) {
+                $pairs[] = [$i, $j];
+                $i++;
+                $j++;
+            } elseif ($len[$i + 1][$j] >= $len[$i][$j + 1]) {
+                $i++;
+            } else {
+                $j++;
+            }
+        }
+
+        return $pairs;
+    }
+
+    /**
+     * Two children can be diffed in place when their signatures match.
+     */
+    private function signature(Node $node): string
+    {
+        if ($node->isText()) {
+            return '#text';
+        }
+
+        return $node->key !== null ? $node->type . '#' . $node->key : $node->type;
+    }
+
+    private function childPath(string $path, int $index): string
+    {
+        return $path === '' ? (string) $index : $path . '.' . $index;
     }
 
     /**

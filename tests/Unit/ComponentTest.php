@@ -7,6 +7,7 @@ use Doppar\Ripple\Exceptions\ValidationException;
 use Doppar\Ripple\Tests\Fixtures\ArgComponent;
 use Doppar\Ripple\Tests\Fixtures\CounterComponent;
 use Doppar\Ripple\Tests\Fixtures\FormComponent;
+use Doppar\Ripple\Tests\Fixtures\HistoryComponent;
 use Doppar\Ripple\Tests\Fixtures\KitchenSinkComponent;
 use Doppar\Ripple\Tests\Fixtures\PaginatedComponent;
 use Doppar\Ripple\Tests\Support\AppHarness;
@@ -375,5 +376,72 @@ final class ComponentTest extends TestCase
         $this->assertSame(1, $c->page);
         $c->previousPage();
         $this->assertSame(1, $c->page);
+    }
+
+    public function test_query_string_history_false_is_never_written_back(): void
+    {
+        $c = new HistoryComponent();
+        $c->q = 'boots';
+        $c->sort = 'oldest';
+
+        $qs = $c->getQueryString();
+
+        $this->assertSame('boots', $qs['q']);
+        $this->assertArrayNotHasKey('sort', $qs);
+    }
+
+    public function test_query_string_history_false_still_hydrates_from_the_url(): void
+    {
+        $harness = new AppHarness(sys_get_temp_dir() . '/ripple-history-' . bin2hex(random_bytes(4)));
+
+        try {
+            $harness->bindQuery(['q' => 'boots', 'sort' => 'oldest']);
+            $c = new HistoryComponent();
+            $c->hydrateFromQueryString();
+
+            $this->assertSame('boots', $c->q);
+            $this->assertSame('oldest', $c->sort);
+        } finally {
+            $harness->destroy();
+        }
+    }
+
+    public function test_on_listener_is_callable_when_delivered_as_its_event(): void
+    {
+        $c = new KitchenSinkComponent();
+
+        // onAnnounce is #[On('announce')] but not #[Invokable].
+        $c->callAction('onAnnounce', ['hi'], 'announce');
+
+        $this->assertSame('hi', $c->heard);
+    }
+
+    public function test_on_listener_is_not_a_general_browser_action(): void
+    {
+        $c = new KitchenSinkComponent();
+
+        $this->expectException(\BadMethodCallException::class);
+        $this->expectExceptionMessage('is not invokable');
+
+        $c->callAction('onAnnounce', ['hi']);
+    }
+
+    public function test_listener_is_rejected_when_the_event_name_does_not_match(): void
+    {
+        $c = new KitchenSinkComponent();
+
+        $this->expectException(\BadMethodCallException::class);
+
+        $c->callAction('onAnnounce', ['hi'], 'some-other-event');
+    }
+
+    public function test_naming_an_event_does_not_unlock_methods_that_are_not_its_listeners(): void
+    {
+        $c = new KitchenSinkComponent();
+
+        $this->expectException(\BadMethodCallException::class);
+
+        // hydrateLifecycle is public but is neither #[Invokable] nor a listener of "announce".
+        $c->callAction('hydrateLifecycle', [], 'announce');
     }
 }

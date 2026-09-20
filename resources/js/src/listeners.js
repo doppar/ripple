@@ -1,5 +1,5 @@
 import { parseCall, payloadFrom, rootOf } from './dom.js';
-import { send } from './http.js';
+import { enqueue, isBusy, send } from './http.js';
 import { confirmAction } from './confirm.js';
 import { startLoading, stopLoading } from './loading.js';
 import { applyResponse } from './patch.js';
@@ -10,11 +10,22 @@ import { softNavigate } from './navigate.js';
 
 let documentBound = false;
 
-export function runCall(root, action, args = []) {
+/**
+ * @param {Element} root
+ * @param {string} action
+ * @param {unknown[]} args
+ * @param {string|null} event Name of the event being delivered to a #[On] listener, if any
+ */
+export function runCall(root, action, args = [], event = null) {
   startLoading(root);
-  return send(root, payloadFrom(root, { t: 'a', a: action, g: args }))
-    .then((data) => applyResponse(root, data, runCall))
-    .finally(() => stopLoading(root));
+  return enqueue(root, () =>
+    send(root, payloadFrom(root, { t: 'a', a: action, g: args, ...(event ? { ev: event } : {}) })).then((data) =>
+      applyResponse(root, data, runCall),
+    ),
+  ).finally(() => {
+    // Keep the loading UI up until the last queued update for this root is done.
+    if (!isBusy(root)) stopLoading(root);
+  });
 }
 
 /** Bind models/polls/lazy on every [data-ripple] under scope (safe after SPA body swap). */

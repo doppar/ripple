@@ -92,7 +92,7 @@ final class ComponentManager
     /**
      * @param array{
      *   i?: string, n?: string, a?: ?string, g?: array, s?: array,
-     *   t?: string, p?: string, v?: mixed, f?: string, x?: string, er?: array
+     *   t?: string, p?: string, v?: mixed, f?: string, x?: string, er?: array, ev?: string
      * } $payload
      * @return array<string, mixed>
      */
@@ -135,7 +135,12 @@ final class ComponentManager
             } else {
                 $action = $payload['a'] ?? null;
                 $args = is_array($payload['g'] ?? null) ? $payload['g'] : [];
-                $instance->callAction(is_string($action) ? $action : null, $args);
+                $event = $payload['ev'] ?? null;
+                $instance->callAction(
+                    is_string($action) ? $action : null,
+                    $args,
+                    is_string($event) && $event !== '' ? $event : null,
+                );
             }
         } catch (ValidationException $e) {
             $newState = $instance->getState();

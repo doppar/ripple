@@ -1,5 +1,5 @@
 import { findAttr, parseModifiers, payloadFrom, rootOf } from './dom.js';
-import { send } from './http.js';
+import { enqueue, isBusy, send } from './http.js';
 import { startLoading, stopLoading } from './loading.js';
 import { applyResponse } from './patch.js';
 import { uploadFile } from './upload.js';
@@ -20,13 +20,16 @@ function inputValue(el) {
 
 async function updateProp(root, property, value, { silent = true } = {}) {
   // Send last signed state + p/v only — do not mutate data-ripple-state before
-  // the response or the HMAC signature no longer matches.
+  // the response or the HMAC signature no longer matches. The payload is built when this
+  // update reaches the front of the queue, so it always starts from the previous response.
   if (!silent) startLoading(root);
   try {
-    const data = await send(root, payloadFrom(root, { t: 'u', p: property, v: value }));
-    applyResponse(root, data);
+    await enqueue(root, async () => {
+      const data = await send(root, payloadFrom(root, { t: 'u', p: property, v: value }));
+      applyResponse(root, data);
+    });
   } finally {
-    if (!silent) stopLoading(root);
+    if (!silent && !isBusy(root)) stopLoading(root);
   }
 }
 
@@ -42,11 +45,13 @@ async function uploadFiles(root, property, files, multiple) {
       }
       ids.push(uploaded.id);
     }
-    const data = await send(
-      root,
-      payloadFrom(root, { t: 'u', p: property, v: multiple ? ids : ids[0] }),
-    );
-    applyResponse(root, data);
+    await enqueue(root, async () => {
+      const data = await send(
+        root,
+        payloadFrom(root, { t: 'u', p: property, v: multiple ? ids : ids[0] }),
+      );
+      applyResponse(root, data);
+    });
   } catch (err) {
     const message = err?.message || 'Upload failed';
     root.dispatchEvent(new CustomEvent('ripple:upload-error', { bubbles: true, detail: { message, property } }));

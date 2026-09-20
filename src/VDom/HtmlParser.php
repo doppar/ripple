@@ -75,6 +75,50 @@ final class HtmlParser
             }
         }
 
-        return new Node(strtolower($dom->tagName), $attrs, $children, key: $key);
+        $tag = strtolower($dom->tagName);
+        if ($tag === 'table') {
+            $children = $this->withImplicitTbody($children);
+        }
+
+        return new Node($tag, $attrs, $children, key: $key);
+    }
+
+    /**
+     * Browsers wrap bare <tr> children of a <table> in an implicit <tbody>; libxml does not.
+     * Mirror the browser tree so diff paths line up with the live DOM. Whitespace before the
+     * first <tr> stays on the table, everything after it (including trailing whitespace) goes
+     * into the tbody, exactly like the HTML5 tree builder.
+     *
+     * @param list<Node> $children
+     * @return list<Node>
+     */
+    private function withImplicitTbody(array $children): array
+    {
+        $sections = ['thead', 'tbody', 'tfoot', 'caption', 'colgroup'];
+        $out = [];
+        $body = null;
+
+        foreach ($children as $child) {
+            if ($body === null) {
+                if ($child->type === 'tr') {
+                    $body = new Node('tbody', [], [$child]);
+                    $out[] = $body;
+                    continue;
+                }
+
+                $out[] = $child;
+                continue;
+            }
+
+            if (in_array($child->type, $sections, true)) {
+                $body = null;
+                $out[] = $child;
+                continue;
+            }
+
+            $body->children[] = $child;
+        }
+
+        return $out;
     }
 }
