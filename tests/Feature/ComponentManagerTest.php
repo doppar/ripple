@@ -5,7 +5,6 @@ namespace Doppar\Ripple\Tests\Feature;
 use Doppar\Ripple\ComponentManager;
 use Doppar\Ripple\Delta\Op;
 use Doppar\Ripple\State\StateSigner;
-use Phaseolies\DI\Container;
 use Doppar\Ripple\Tests\Fixtures\ArgComponent;
 use Doppar\Ripple\Tests\Fixtures\ConditionalErrorComponent;
 use Doppar\Ripple\Tests\Fixtures\CounterComponent;
@@ -15,6 +14,7 @@ use Doppar\Ripple\Tests\Fixtures\KitchenSinkComponent;
 use Doppar\Ripple\Tests\Fixtures\LazyDeskComponent;
 use Doppar\Ripple\Tests\Support\AppHarness;
 use Doppar\Ripple\Tests\TestCase;
+use Phaseolies\DI\Container;
 
 final class ComponentManagerTest extends TestCase
 {
