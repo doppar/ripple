@@ -14,6 +14,7 @@ use Doppar\Ripple\Tests\Fixtures\KitchenSinkComponent;
 use Doppar\Ripple\Tests\Fixtures\LazyDeskComponent;
 use Doppar\Ripple\Tests\Support\AppHarness;
 use Doppar\Ripple\Tests\TestCase;
+use Phaseolies\DI\Container;
 
 final class ComponentManagerTest extends TestCase
 {
@@ -187,6 +188,26 @@ final class ComponentManagerTest extends TestCase
         $this->manager->register('counter', CounterComponent::class);
 
         $html = $this->manager->mount('counter');
+
+        $this->assertStringContainsString('Count: 0', $html);
+    }
+
+    public function test_short_name_resolves_under_component_namespace(): void
+    {
+        $this->setRippleConfig('ripple.component_namespace', 'Doppar\\Ripple\\Tests\\Fixtures\\');
+
+        $html = $this->manager->mount('counter-component');
+
+        $this->assertStringContainsString('Count: 0', $html);
+        $this->assertStringContainsString('data-ripple-name="' . CounterComponent::class . '"', $html);
+    }
+
+    public function test_ripple_helper_mounts_short_name(): void
+    {
+        $this->setRippleConfig('ripple.component_namespace', 'Doppar\\Ripple\\Tests\\Fixtures\\');
+        Container::getInstance()->instance(ComponentManager::class, $this->manager);
+
+        $html = ripple('counter-component');
 
         $this->assertStringContainsString('Count: 0', $html);
     }

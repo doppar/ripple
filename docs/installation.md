@@ -60,7 +60,7 @@ Put scripts in your **layout** `<head>`, not only on individual pages. Soft navi
 ## Verify
 
 1. Create a component: `php pool make:ripple Hello`
-2. Mount it on a page with `Ripple::mount(...)`
+2. Mount it on a page with `ripple('hello')`
 3. Click a `ripple:call` button and confirm the UI updates without a full page reload
 
 Next: [Getting started](getting-started.md)

@@ -99,18 +99,18 @@ Nested names map to folders under `src/Ripple/` and `templates/views/ripple/`.
 ## Mounting
 
 ```php
-use Doppar\Ripple\Facade\Ripple;
-
-echo Ripple::mount(\App\Ripple\Counter::class);
-echo Ripple::mount('Counter'); // resolves via component_namespace
-echo Ripple::mount(\App\Ripple\Counter::class, ['count' => 5]);
+echo ripple('counter');
+echo ripple('counter', ['count' => 5]);
+echo ripple(\App\Ripple\Counter::class);
 ```
 
 In Odo:
 
 ```odo
-[[! \Doppar\Ripple\Facade\Ripple::mount(\App\Ripple\Counter::class) !]]
+[[! ripple('counter') !]]
 ```
+
+Short names resolve under `component_namespace` (`App\Ripple` by default). `counter`, `Counter`, and `sales-dashboard` map to the matching class. A fully qualified class name still works.
 
 ## View data
 
@@ -124,10 +124,12 @@ return view('ripple.preference-panel', [
 
 ## Aliases
 
-Register short names if you prefer:
+Register a name that does not match the class:
 
 ```php
-Ripple::register('counter', \App\Ripple\Counter::class);
+use Doppar\Ripple\Facade\Ripple;
+
+Ripple::register('cart', \App\Ripple\Checkout::class);
 ```
 
 Next: [Directives](directives.md) · [Lifecycle](lifecycle.md)

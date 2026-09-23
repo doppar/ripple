@@ -363,14 +363,32 @@ final class ComponentManager
             return $component;
         }
 
-        $path = str_replace('/', '\\', $component);
-        $namespaced = rtrim((string) Config::get('ripple.component_namespace', 'App\\Ripple\\'), '\\') . '\\' . $path;
-        if (class_exists($namespaced)) {
-            /** @var class-string<Component> $namespaced */
-            return $namespaced;
+        $namespace = rtrim((string) Config::get('ripple.component_namespace', 'App\\Ripple\\'), '\\');
+        foreach ($this->candidateClassNames($component) as $path) {
+            $namespaced = $namespace . '\\' . $path;
+            if (class_exists($namespaced)) {
+                /** @var class-string<Component> $namespaced */
+                return $namespaced;
+            }
         }
 
         throw new \InvalidArgumentException("Ripple component [{$component}] was not found.");
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function candidateClassNames(string $component): array
+    {
+        $path = str_replace(['/', '.'], '\\', trim($component, '/.'));
+        $studly = implode('\\', array_map($this->studly(...), explode('\\', $path)));
+
+        return $path === $studly ? [$path] : [$path, $studly];
+    }
+
+    private function studly(string $value): string
+    {
+        return str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $value)));
     }
 
     /**

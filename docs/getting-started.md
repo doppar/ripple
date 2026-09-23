@@ -75,13 +75,15 @@ Do not wrap the root yourself with `data-ripple`. `mount()` adds that.
 **Island** (embed in an existing view):
 
 ```odo
-[[! \Doppar\Ripple\Facade\Ripple::mount(\App\Ripple\Counter::class) !]]
+[[! ripple('counter') !]]
 ```
 
-Pass constructor / mount params as a second argument when needed:
+`ripple('counter')` resolves `App\Ripple\Counter` from `component_namespace`. Kebab and slash names work the same way: `ripple('sales-dashboard')`, `ripple('admin/user-table')`.
+
+Pass mount params as a second argument when needed:
 
 ```php
-Ripple::mount(\App\Ripple\Counter::class, ['count' => 10]);
+ripple('counter', ['count' => 10]);
 ```
 
 **Full page** (component owns the route):

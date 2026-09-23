@@ -56,7 +56,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Default PHP namespace used when resolving short component names
-    | (for example "Counter" → App\Ripple\Counter).
+    | (for example "counter" → App\Ripple\Counter).
     |
     */
 

@@ -25,7 +25,7 @@ Change these only if your app needs non-default paths. `Ripple::scripts()` emits
 'component_namespace' => 'App\\Ripple\\',
 ```
 
-Used when mounting by short name (`Ripple::mount('Counter')`).
+Used when mounting by short name (`ripple('counter')` resolves `App\Ripple\Counter`).
 
 ## Full-page layout
 
