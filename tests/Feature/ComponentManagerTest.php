@@ -5,6 +5,7 @@ namespace Doppar\Ripple\Tests\Feature;
 use Doppar\Ripple\ComponentManager;
 use Doppar\Ripple\Delta\Op;
 use Doppar\Ripple\State\StateSigner;
+use Phaseolies\DI\Container;
 use Doppar\Ripple\Tests\Fixtures\ArgComponent;
 use Doppar\Ripple\Tests\Fixtures\ConditionalErrorComponent;
 use Doppar\Ripple\Tests\Fixtures\CounterComponent;
@@ -187,6 +188,26 @@ final class ComponentManagerTest extends TestCase
         $this->manager->register('counter', CounterComponent::class);
 
         $html = $this->manager->mount('counter');
+
+        $this->assertStringContainsString('Count: 0', $html);
+    }
+
+    public function test_short_name_resolves_under_component_namespace(): void
+    {
+        $this->setRippleConfig('ripple.component_namespace', 'Doppar\\Ripple\\Tests\\Fixtures\\');
+
+        $html = $this->manager->mount('counter-component');
+
+        $this->assertStringContainsString('Count: 0', $html);
+        $this->assertStringContainsString('data-ripple-name="' . CounterComponent::class . '"', $html);
+    }
+
+    public function test_ripple_helper_mounts_short_name(): void
+    {
+        $this->setRippleConfig('ripple.component_namespace', 'Doppar\\Ripple\\Tests\\Fixtures\\');
+        Container::getInstance()->instance(ComponentManager::class, $this->manager);
+
+        $html = ripple('counter-component');
 
         $this->assertStringContainsString('Count: 0', $html);
     }

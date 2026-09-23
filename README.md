@@ -78,7 +78,7 @@ class Counter extends Component
 Mount it in a page:
 
 ```odo
-[[! \Doppar\Ripple\Facade\Ripple::mount(\App\Ripple\Counter::class) !]]
+[[! ripple('counter') !]]
 ```
 
 ## Documentation

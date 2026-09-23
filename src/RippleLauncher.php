@@ -27,8 +27,8 @@ class RippleLauncher extends PackageServiceLauncher
 
         $this->mergeConfig(__DIR__ . '/../config/ripple.php', 'ripple');
 
-        // view() resolves Controller — merge Ripple public props while a component renders
-        $this->app->singleton(Controller::class, fn () => new RippleViewController());
+        // view() resolves Controller and merges Ripple public props while a component renders.
+        $this->app->bind(Controller::class, fn () => new RippleViewController());
 
         // Route::ripple() — replace Router before middleware/routes attach (shares static $routes)
         $existing = $this->app->router;

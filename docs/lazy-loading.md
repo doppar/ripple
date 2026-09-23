@@ -27,7 +27,7 @@ class SalesDashboard extends Component
 ## Mount as usual
 
 ```odo
-[[! \Doppar\Ripple\Facade\Ripple::mount(\App\Ripple\SalesDashboard::class) !]]
+[[! ripple('sales-dashboard') !]]
 ```
 
 The first response is a lightweight root with `data-ripple-lazy`. The client requests `/ripple/lazy`, then injects the full HTML and continues with normal updates.

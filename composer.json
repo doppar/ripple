@@ -31,7 +31,10 @@
     "autoload": {
         "psr-4": {
             "Doppar\\Ripple\\": "src/"
-        }
+        },
+        "files": [
+            "src/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
