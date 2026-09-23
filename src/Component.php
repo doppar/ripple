@@ -196,6 +196,18 @@ abstract class Component
 
     public function updateProperty(string $property, mixed $value): void
     {
+        $this->syncProperty($property, $value);
+
+        if (array_key_exists($property, $this->rules())) {
+            $this->validateOnly($property);
+        }
+    }
+
+    /**
+     * Apply a client value without running validateOnly (used when flushing a form before an action).
+     */
+    public function syncProperty(string $property, mixed $value): void
+    {
         if (! property_exists($this, $property)) {
             throw new \InvalidArgumentException("Property [{$property}] does not exist on " . static::class);
         }
@@ -213,10 +225,6 @@ abstract class Component
         $ref = new ReflectionProperty($this, $property);
         $ref->setValue($this, $this->castIncoming($ref, $value));
         $this->updated($property);
-
-        if (array_key_exists($property, $this->rules())) {
-            $this->validateOnly($property);
-        }
     }
 
     /**

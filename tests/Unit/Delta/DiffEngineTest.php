@@ -67,6 +67,47 @@ final class DiffEngineTest extends TestCase
         $this->assertTrue($this->diff->diff($tree, $tree)->isEmpty());
     }
 
+    public function test_empty_element_to_text_uses_set_text_on_element(): void
+    {
+        $old = $this->parser->parse('<p class="err"></p>');
+        $new = $this->parser->parse('<p class="err">Required</p>');
+
+        $ops = $this->diff->diff($old, $new)->toArray();
+        $this->assertCount(1, $ops);
+        $this->assertSame(Op::SET_TEXT, $ops[0]['o'] ?? null);
+        $this->assertSame('Required', $ops[0]['v'] ?? null);
+        // Path is the element itself ('' for a single root), not a child INSERT.
+        $this->assertSame('', $ops[0]['p'] ?? null);
+    }
+
+    public function test_text_to_empty_element_clears_via_set_text(): void
+    {
+        $old = $this->parser->parse('<p class="err">Required</p>');
+        $new = $this->parser->parse('<p class="err"></p>');
+
+        $ops = $this->diff->diff($old, $new)->toArray();
+        $this->assertCount(1, $ops);
+        $this->assertSame(Op::SET_TEXT, $ops[0]['o'] ?? null);
+        $this->assertSame('', $ops[0]['v'] ?? null);
+    }
+
+    public function test_conditional_error_block_inserts_once_then_stable(): void
+    {
+        $without = $this->parser->parse('<div><input></div>');
+        $with = $this->parser->parse('<div><input><p class="text-danger">The Email field is required</p></div>');
+
+        $first = $this->diff->diff($without, $with)->toArray();
+        $inserts = array_values(array_filter($first, static fn (array $o) => ($o['o'] ?? '') === Op::INSERT));
+        $this->assertNotEmpty($inserts);
+
+        $again = $this->diff->diff($with, $with)->toArray();
+        $this->assertSame([], $again);
+        $this->assertSame(
+            [],
+            array_values(array_filter($again, static fn (array $o) => ($o['o'] ?? '') === Op::INSERT)),
+        );
+    }
+
     public function test_emits_insert_when_child_added(): void
     {
         $old = $this->parser->parse('<ul><li>a</li></ul>');

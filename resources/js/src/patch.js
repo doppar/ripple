@@ -1,5 +1,6 @@
 import { contentRoot } from './dom.js';
 import { handleEvents } from './events.js';
+import { hydrateBoundFields } from './hydrate.js';
 import { handleRedirect } from './navigate.js';
 import { bindPolls } from './poll.js';
 
@@ -103,4 +104,5 @@ export function applyResponse(root, data, callAction) {
   }
 
   handleEvents(root, data, callAction);
+  hydrateBoundFields(root);
 }

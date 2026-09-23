@@ -1,7 +1,7 @@
-import { parseCall, payloadFrom, rootOf } from './dom.js';
-import { enqueue, isBusy, send } from './http.js';
+import { findAttr, parseCall, payloadFrom, rootOf } from './dom.js';
+import { enqueue, send } from './http.js';
 import { confirmAction } from './confirm.js';
-import { startLoading, stopLoading } from './loading.js';
+import { startLoading } from './loading.js';
 import { applyResponse } from './patch.js';
 import { bindModels } from './bind.js';
 import { bindPolls } from './poll.js';
@@ -9,6 +9,23 @@ import { bindLazy } from './lazy.js';
 import { softNavigate } from './navigate.js';
 
 let documentBound = false;
+
+/** Read current DOM values for every ripple:bind control under the mount. */
+function boundValues(root) {
+  const m = {};
+  root.querySelectorAll('input, textarea, select').forEach((el) => {
+    if (rootOf(el) !== root) return;
+    const attr = findAttr(el, 'ripple:bind');
+    if (!attr || el.type === 'file') return;
+    if (el.type === 'radio' && !el.checked) return;
+    if (el.type === 'checkbox') {
+      m[attr.value] = el.checked;
+      return;
+    }
+    m[attr.value] = el.value;
+  });
+  return m;
+}
 
 /**
  * @param {Element} root
@@ -18,13 +35,11 @@ let documentBound = false;
  */
 export function runCall(root, action, args = [], event = null) {
   startLoading(root);
-  return enqueue(root, () =>
-    send(root, payloadFrom(root, { t: 'a', a: action, g: args, ...(event ? { ev: event } : {}) })).then((data) =>
-      applyResponse(root, data, runCall),
-    ),
-  ).finally(() => {
-    // Keep the loading UI up until the last queued update for this root is done.
-    if (!isBusy(root)) stopLoading(root);
+  return enqueue(root, () => {
+    const m = boundValues(root);
+    const extras = { t: 'a', a: action, g: args, ...(event ? { ev: event } : {}) };
+    if (Object.keys(m).length) extras.m = m;
+    return send(root, payloadFrom(root, extras)).then((data) => applyResponse(root, data, runCall));
   });
 }
 

@@ -1,4 +1,5 @@
 import { updateUri } from './dom.js';
+import { stopLoading } from './loading.js';
 
 async function readBody(res) {
   const ct = res.headers.get('content-type') || '';
@@ -43,7 +44,11 @@ export function enqueue(root, task) {
     try {
       return await task();
     } finally {
-      inFlight.set(root, inFlight.get(root) - 1);
+      const left = (inFlight.get(root) || 1) - 1;
+      inFlight.set(root, left);
+      // The task that started the indicator may have finished earlier. A later
+      // silent update must still be the one that turns it off.
+      if (left <= 0) stopLoading(root);
     }
   });
 

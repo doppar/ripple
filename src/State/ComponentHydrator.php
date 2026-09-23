@@ -24,7 +24,8 @@ final class ComponentHydrator
             $instance->setId($id);
         }
         if ($params !== []) {
-            $instance->hydrate($params);
+            // Server-side mount params are trusted (routes / Ripple::mount).
+            $instance->hydrate($params, allowLocked: true);
         }
         $instance->hydrateFromQueryString();
         $instance->mount();

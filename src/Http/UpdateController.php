@@ -21,7 +21,7 @@ final class UpdateController
         try {
             $result = $this->manager->update($payload);
 
-            return new JsonResponse($result, ($result['ok'] ?? true) ? 200 : 422);
+            return new JsonResponse($result, 200);
         } catch (RedirectException $e) {
             return new JsonResponse([
                 'ok' => true,
@@ -32,7 +32,7 @@ final class UpdateController
                 'ok' => false,
                 'e' => $e->errors(),
                 'message' => $e->getMessage(),
-            ], 422);
+            ], 200);
         }
         // Missing action/component and other failures bubble to Doppar's ErrorHandler
         // (debug page when APP_DEBUG, production 500 page otherwise).
@@ -71,6 +71,7 @@ final class UpdateController
             'f' => $json['f'] ?? $request->input('f'),
             'x' => $json['x'] ?? $request->input('x'),
             'er' => $json['er'] ?? $request->input('er'),
+            'm' => $json['m'] ?? $request->input('m'),
             'ev' => $json['ev'] ?? $request->input('ev'),
         ];
     }

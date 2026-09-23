@@ -1,5 +1,6 @@
 import { findAttr, parseModifiers, payloadFrom, rootOf } from './dom.js';
 import { enqueue, isBusy, send } from './http.js';
+import { hydrateBoundFields } from './hydrate.js';
 import { startLoading, stopLoading } from './loading.js';
 import { applyResponse } from './patch.js';
 import { uploadFile } from './upload.js';
@@ -23,14 +24,10 @@ async function updateProp(root, property, value, { silent = true } = {}) {
   // the response or the HMAC signature no longer matches. The payload is built when this
   // update reaches the front of the queue, so it always starts from the previous response.
   if (!silent) startLoading(root);
-  try {
-    await enqueue(root, async () => {
-      const data = await send(root, payloadFrom(root, { t: 'u', p: property, v: value }));
-      applyResponse(root, data);
-    });
-  } finally {
-    if (!silent && !isBusy(root)) stopLoading(root);
-  }
+  await enqueue(root, async () => {
+    const data = await send(root, payloadFrom(root, { t: 'u', p: property, v: value }));
+    applyResponse(root, data);
+  });
 }
 
 async function uploadFiles(root, property, files, multiple) {
@@ -57,11 +54,13 @@ async function uploadFiles(root, property, files, multiple) {
     root.dispatchEvent(new CustomEvent('ripple:upload-error', { bubbles: true, detail: { message, property } }));
     console.error('[ripple] upload:', message);
   } finally {
-    stopLoading(root);
+    if (!isBusy(root)) stopLoading(root);
   }
 }
 
 export function bindModels(root) {
+  hydrateBoundFields(root);
+
   root.addEventListener('input', (e) => {
     const el = e.target;
     const attr = findAttr(el, 'ripple:bind');
