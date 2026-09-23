@@ -2,6 +2,8 @@
 
 namespace Doppar\Ripple\VDom;
 
+use Doppar\Ripple\Exceptions\MultipleRootsException;
+
 /**
  * HTML to VDOM via DOMDocument.
  * ponytail: not a full HTML5 tokenizer; fine for component fragments.
@@ -36,11 +38,23 @@ final class HtmlParser
             }
         }
 
-        if (count($children) === 1) {
-            return $children[0];
+        $elements = array_values(array_filter(
+            $children,
+            static fn (Node $n) => $n->isElement(),
+        ));
+
+        if (count($elements) > 1) {
+            throw new MultipleRootsException(array_map(
+                static fn (Node $n) => $n->type,
+                $elements,
+            ));
         }
 
-        return new Node('div', ['data-ripple-fragment' => '1'], $children);
+        if (count($elements) === 1) {
+            return $elements[0];
+        }
+
+        return $children[0] ?? new Node('#text', text: '');
     }
 
     private function fromDom(\DOMNode $dom): ?Node

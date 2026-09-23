@@ -1,6 +1,6 @@
 # Validation
 
-Use Doppar validation rules inside components. Failed validation returns errors in the same update response (HTTP 422); the component re-renders with `$errors` available in the view.
+Use Doppar validation rules inside components. Failed validation returns errors in the same update response; the component re-renders with `$errors` available in the view.
 
 ## Define rules
 

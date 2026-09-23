@@ -27,7 +27,7 @@ Default trigger is `click`. For forms, use `submit`:
 
 ## Binding: `ripple:bind`
 
-Sync an input with a public property.
+Sync an input with a public property. On mount (and after each update), Ripple fills the control from component state — you do not need `value="[[ $name ]]"` in the view.
 
 | Form | When it syncs |
 |------|----------------|

@@ -61,6 +61,7 @@ final class ComponentManager
 
         $instance = $this->hydrator->mount($class, $params);
         $html = $this->renderHtml($instance);
+        $this->parser->parse($html);
         $state = $instance->getState();
         $id = $instance->getId();
         $fingerprint = $this->signer->fingerprint($state);
@@ -92,7 +93,7 @@ final class ComponentManager
     /**
      * @param array{
      *   i?: string, n?: string, a?: ?string, g?: array, s?: array,
-     *   t?: string, p?: string, v?: mixed, f?: string, x?: string, er?: array, ev?: string
+     *   t?: string, p?: string, v?: mixed, f?: string, x?: string, er?: array, ev?: string, m?: array
      * } $payload
      * @return array<string, mixed>
      */
@@ -116,14 +117,28 @@ final class ComponentManager
             $id !== '' ? $id : bin2hex(random_bytes(8)),
             allowLocked: $verified,
         );
+
+        // Prior errors stay in the baseline so the live DOM (which still shows
+        // them) diffs correctly — including #if error blocks. Re-diffing from a
+        // cleared tree would INSERT those blocks again and stack duplicates.
         if (isset($payload['er']) && is_array($payload['er'])) {
             /** @var array<string, list<string>> $er */
             $er = $payload['er'];
             $instance->setErrorBag($er);
         }
+        $flushedModels = false;
+        if ($type !== 'u') {
+            $flushedModels = $this->syncClientModels($instance, $payload['m'] ?? null);
+        }
 
         $oldHtml = $this->renderHtml($instance);
         $oldTree = $this->parser->parse($oldHtml);
+
+        // Snapshot first. Clearing before the baseline render makes the diff INSERT
+        // error blocks the browser is still showing.
+        if ($flushedModels) {
+            $instance->setErrorBag([]);
+        }
 
         try {
             if ($type === 'u') {
@@ -143,6 +158,7 @@ final class ComponentManager
                 );
             }
         } catch (ValidationException $e) {
+            $instance->setErrorBag($e->errors());
             $newState = $instance->getState();
             $newHtml = $this->renderHtml($instance);
             $patch = $this->diff->diff($oldTree, $this->parser->parse($newHtml));
@@ -197,6 +213,7 @@ final class ComponentManager
         $state = $instance->getState();
         $cid = $instance->getId();
         $html = $this->renderHtml($instance);
+        $this->parser->parse($html);
 
         return [
             'ok' => true,
@@ -269,6 +286,33 @@ final class ComponentManager
     public function signer(): StateSigner
     {
         return $this->signer;
+    }
+
+    /**
+     * Apply pending DOM-bound values flushed by the client before an action.
+     * Skips locked/hidden/computed props the same way updateProperty does.
+     *
+     * @param array<string, mixed>|mixed $models
+     */
+    private function syncClientModels(Component $instance, mixed $models): bool
+    {
+        if (! is_array($models) || $models === []) {
+            return false;
+        }
+
+        foreach ($models as $property => $value) {
+            if (! is_string($property) || $property === '') {
+                continue;
+            }
+
+            try {
+                $instance->syncProperty($property, $value);
+            } catch (\InvalidArgumentException) {
+                // Ignore unknown / locked / computed — client may over-report.
+            }
+        }
+
+        return true;
     }
 
     /**

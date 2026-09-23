@@ -2,9 +2,11 @@
 
 namespace Doppar\Ripple\Tests\Unit\Exceptions;
 
+use Doppar\Ripple\Exceptions\MultipleRootsException;
 use Doppar\Ripple\Exceptions\RedirectException;
 use Doppar\Ripple\Exceptions\ValidationException;
 use Doppar\Ripple\Tests\TestCase;
+use Doppar\Ripple\VDom\HtmlParser;
 
 final class ExceptionsTest extends TestCase
 {
@@ -25,5 +27,19 @@ final class ExceptionsTest extends TestCase
     {
         $e = new RedirectException(['u' => '/y', 'spa' => false]);
         $this->assertSame(['u' => '/y', 'spa' => false], $e->redirect());
+    }
+
+    public function test_html_parser_rejects_multiple_roots(): void
+    {
+        $this->expectException(MultipleRootsException::class);
+        $this->expectExceptionMessage('single root element');
+        (new HtmlParser())->parse('<div>a</div><div>b</div>');
+    }
+
+    public function test_html_parser_allows_single_root_with_whitespace(): void
+    {
+        $node = (new HtmlParser())->parse("  \n<div class=\"x\">ok</div>\n  ");
+        $this->assertSame('div', $node->type);
+        $this->assertSame('x', $node->attrs['class'] ?? null);
     }
 }

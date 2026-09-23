@@ -56,7 +56,7 @@ final class UpdateControllerTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
     }
 
-    public function test_handle_returns_422_on_validation(): void
+    public function test_handle_returns_ok_false_on_validation(): void
     {
         $response = $this->controller()->handle($this->requestWith($this->withSignature([
             'i' => 'f1',
@@ -67,7 +67,7 @@ final class UpdateControllerTest extends TestCase
             's' => ['email' => '', 'note' => ''],
         ], $this->signer)));
 
-        $this->assertSame(422, $response->getStatusCode());
+        $this->assertSame(200, $response->getStatusCode());
         $payload = $response->getData();
         $this->assertFalse($payload['ok'] ?? true);
         $this->assertArrayHasKey('email', $payload['e'] ?? []);

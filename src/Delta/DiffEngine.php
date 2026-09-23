@@ -67,7 +67,23 @@ final class DiffEngine
             $patch->add(new Op(Op::UPDATE_ATTRS, $path, ['attrs' => $attrDelta]));
         }
 
-        $this->walkChildren($old->children, $new->children, $path, $patch);
+        $oldKids = $old->children;
+        $newKids = $new->children;
+
+        // Empty ↔ single text: set textContent on the element so the client
+        // replaces any live children (INSERT would duplicate text nodes).
+        if ($oldKids === [] && count($newKids) === 1 && $newKids[0]->isText()) {
+            $patch->add(new Op(Op::SET_TEXT, $path, ['value' => $newKids[0]->text ?? '']));
+
+            return;
+        }
+        if (count($oldKids) === 1 && $oldKids[0]->isText() && $newKids === []) {
+            $patch->add(new Op(Op::SET_TEXT, $path, ['value' => '']));
+
+            return;
+        }
+
+        $this->walkChildren($oldKids, $newKids, $path, $patch);
     }
 
     /**

@@ -6,6 +6,7 @@ use Doppar\Ripple\ComponentManager;
 use Doppar\Ripple\Delta\Op;
 use Doppar\Ripple\State\StateSigner;
 use Doppar\Ripple\Tests\Fixtures\ArgComponent;
+use Doppar\Ripple\Tests\Fixtures\ConditionalErrorComponent;
 use Doppar\Ripple\Tests\Fixtures\CounterComponent;
 use Doppar\Ripple\Tests\Fixtures\FormComponent;
 use Doppar\Ripple\Tests\Fixtures\HistoryComponent;
@@ -305,6 +306,42 @@ final class ComponentManagerTest extends TestCase
         $this->assertArrayHasKey('e', $result);
         $this->assertSame(['kept'], $result['e']['note'] ?? null);
         $this->assertArrayHasKey('email', $result['e']);
+    }
+
+    public function test_repeated_conditional_validation_does_not_reinsert_error_node(): void
+    {
+        $first = $this->manager->update($this->withSignature([
+            'i' => 'ce1',
+            'n' => ConditionalErrorComponent::class,
+            't' => 'a',
+            'a' => 'save',
+            'g' => [],
+            's' => ['email' => ''],
+        ], $this->manager->signer()));
+
+        $this->assertFalse($first['ok']);
+        $inserts = array_values(array_filter(
+            $first['d'] ?? [],
+            static fn (array $o) => ($o['o'] ?? '') === Op::INSERT,
+        ));
+        $this->assertNotEmpty($inserts, 'First failure should INSERT the #if error node');
+
+        $second = $this->manager->update($this->withSignature([
+            'i' => 'ce1',
+            'n' => ConditionalErrorComponent::class,
+            't' => 'a',
+            'a' => 'save',
+            'g' => [],
+            's' => ['email' => ''],
+            'er' => $first['e'],
+        ], $this->manager->signer()));
+
+        $this->assertFalse($second['ok']);
+        $insertsAgain = array_values(array_filter(
+            $second['d'] ?? [],
+            static fn (array $o) => ($o['o'] ?? '') === Op::INSERT,
+        ));
+        $this->assertSame([], $insertsAgain, 'Repeat failure must not INSERT another error node');
     }
 
     public function test_update_delivers_an_event_to_a_listener_that_is_not_invokable(): void

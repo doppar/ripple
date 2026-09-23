@@ -41,7 +41,13 @@ final class PatchApplier
 
         switch ($op['o']) {
             case Op::SET_TEXT:
-                $this->nodeAt($root, $segments)->text = (string) ($op['v'] ?? '');
+                $node = $this->nodeAt($root, $segments);
+                $value = (string) ($op['v'] ?? '');
+                if ($node->isElement()) {
+                    $node->children = $value === '' ? [] : [new Node('#text', text: $value)];
+                    break;
+                }
+                $node->text = $value;
                 break;
 
             case Op::UPDATE_ATTRS:
