@@ -20,6 +20,43 @@ function showServerErrorPage(html) {
   document.close();
 }
 
+const tails = new WeakMap();
+const inFlight = new WeakMap();
+
+/**
+ * Run `task` after every earlier task for the same component root has settled.
+ *
+ * Each update carries the signed state the root held when it was built, and the response
+ * replaces that state. Two updates in flight at once would both start from the same state and
+ * the last response would silently discard the first one's changes, so they run one at a time
+ * and `task` builds its payload only when its turn comes.
+ *
+ * @template T
+ * @param {Element} root
+ * @param {() => Promise<T>} task
+ * @returns {Promise<T>}
+ */
+export function enqueue(root, task) {
+  inFlight.set(root, (inFlight.get(root) || 0) + 1);
+
+  const run = (tails.get(root) || Promise.resolve()).then(async () => {
+    try {
+      return await task();
+    } finally {
+      inFlight.set(root, inFlight.get(root) - 1);
+    }
+  });
+
+  tails.set(root, run.catch(() => {}));
+
+  return run;
+}
+
+/** True while any queued update for this root has not finished. */
+export function isBusy(root) {
+  return (inFlight.get(root) || 0) > 0;
+}
+
 export async function send(_root, body) {
   const headers = {
     'Content-Type': 'application/json',

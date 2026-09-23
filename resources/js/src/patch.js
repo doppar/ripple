@@ -1,6 +1,7 @@
 import { contentRoot } from './dom.js';
 import { handleEvents } from './events.js';
 import { handleRedirect } from './navigate.js';
+import { bindPolls } from './poll.js';
 
 function nodeAt(root, path) {
   if (path === '' || path == null) return root;
@@ -79,6 +80,8 @@ export function applyResponse(root, data, callAction) {
   }
 
   applyPatches(root, data.d);
+  // A patch may have inserted or replaced [ripple:poll] elements; already-bound ones are skipped.
+  bindPolls(root);
   if (data.s) root.setAttribute('data-ripple-state', JSON.stringify(data.s));
   if (data.f) root.setAttribute('data-ripple-f', data.f);
   if (data.x) root.setAttribute('data-ripple-x', data.x);

@@ -8,6 +8,7 @@ use Doppar\Ripple\State\StateSigner;
 use Doppar\Ripple\Tests\Fixtures\ArgComponent;
 use Doppar\Ripple\Tests\Fixtures\CounterComponent;
 use Doppar\Ripple\Tests\Fixtures\FormComponent;
+use Doppar\Ripple\Tests\Fixtures\HistoryComponent;
 use Doppar\Ripple\Tests\Fixtures\KitchenSinkComponent;
 use Doppar\Ripple\Tests\Fixtures\LazyDeskComponent;
 use Doppar\Ripple\Tests\Support\AppHarness;
@@ -304,5 +305,52 @@ final class ComponentManagerTest extends TestCase
         $this->assertArrayHasKey('e', $result);
         $this->assertSame(['kept'], $result['e']['note'] ?? null);
         $this->assertArrayHasKey('email', $result['e']);
+    }
+
+    public function test_update_delivers_an_event_to_a_listener_that_is_not_invokable(): void
+    {
+        $result = $this->manager->update($this->withSignature([
+            'i' => 'k2',
+            'n' => KitchenSinkComponent::class,
+            't' => 'a',
+            'a' => 'onAnnounce',
+            'g' => ['from-sibling'],
+            'ev' => 'announce',
+            's' => (new KitchenSinkComponent())->getState(),
+        ], $this->manager->signer()));
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame('from-sibling', $result['s']['heard']);
+    }
+
+    public function test_update_rejects_a_direct_call_to_a_listener_without_the_event_name(): void
+    {
+        $this->expectException(\BadMethodCallException::class);
+
+        $this->manager->update($this->withSignature([
+            'i' => 'k3',
+            'n' => KitchenSinkComponent::class,
+            't' => 'a',
+            'a' => 'onAnnounce',
+            'g' => ['forged'],
+            's' => (new KitchenSinkComponent())->getState(),
+        ], $this->manager->signer()));
+    }
+
+    public function test_update_omits_history_false_properties_from_the_query_string(): void
+    {
+        $state = (new HistoryComponent())->getState();
+        $result = $this->manager->update($this->withSignature([
+            'i' => 'h1',
+            'n' => HistoryComponent::class,
+            't' => 'u',
+            'p' => 'sort',
+            'v' => 'oldest',
+            's' => $state,
+        ], $this->manager->signer()));
+
+        $this->assertSame('oldest', $result['s']['sort']);
+        $this->assertArrayNotHasKey('sort', $result['qs']);
+        $this->assertArrayHasKey('q', $result['qs']);
     }
 }

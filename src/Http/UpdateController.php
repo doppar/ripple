@@ -71,6 +71,7 @@ final class UpdateController
             'f' => $json['f'] ?? $request->input('f'),
             'x' => $json['x'] ?? $request->input('x'),
             'er' => $json['er'] ?? $request->input('er'),
+            'ev' => $json['ev'] ?? $request->input('ev'),
         ];
     }
 

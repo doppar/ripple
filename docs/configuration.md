@@ -40,14 +40,14 @@ Default Odo layout for `Route::ripple()` when the component has no `#[Layout]` a
 ```php
 'security' => [
     'signing_key' => env('RIPPLE_SIGNING_KEY'),
-    'verify_state' => env('RIPPLE_VERIFY_STATE', 'property-updates'),
+    'verify_state' => env('RIPPLE_VERIFY_STATE', 'strict'),
 ],
 ```
 
 | Option | Meaning |
 |--------|---------|
 | `signing_key` | HMAC key for state signatures; falls back to `APP_KEY` when null. Prefer a dedicated `RIPPLE_SIGNING_KEY` in production. |
-| `verify_state` | `strict` — verify every update; `property-updates` — verify property sync (`t=u`); `none` — skip (local only). |
+| `verify_state` | `strict` (default) — verify every update; `property-updates` — verify property sync (`t=u`) only, `#[Locked]` properties are still ignored on unsigned actions; `none` — skip (local only). |
 
 ## Performance
 

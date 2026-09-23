@@ -93,6 +93,20 @@ Skipped automatically for modified clicks, new tabs (`target`), downloads, cross
 
 The method must be `#[Invokable]`.
 
+Polling stops when the element leaves the DOM, so you can turn it off with a condition:
+
+```odo
+#if ($running)
+    <div ripple:poll="2s"></div>
+#endif
+```
+
+Rendering the element again starts polling again. A poll tick is skipped while another request for the same component is still in flight.
+
+## Request order
+
+Updates for one component run one at a time, in the order they were triggered. Each update starts from the state the previous response returned, so quick successive edits (autofill, tabbing through fields) never overwrite each other.
+
 ## Tips
 
 - Keep `ripple:call` / `ripple:bind` inside the mounted root. Outside the root they do nothing.

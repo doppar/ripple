@@ -20,13 +20,13 @@ public string $status = '';
 | Option | Default | Meaning |
 |--------|---------|---------|
 | `as` | property name | Query key in the URL |
-| `history` | `true` | Update the address bar after changes |
+| `history` | `true` | Write changes to the address bar. With `false` the property is still read from the URL on first render but is never written back |
 | `keep` | `false` | Keep the key even when the value is empty |
 
 ## Behavior
 
 - On first render, Ripple reads matching query params into the properties
-- After updates, the client updates the URL with `history.replaceState` for properties that changed
+- After updates, the client updates the URL with `history.replaceState` for properties that changed (properties with `history: false` are skipped)
 
 Combine with `ripple:bind.live` for search boxes:
 

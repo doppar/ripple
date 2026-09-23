@@ -71,6 +71,21 @@ public string $summary = '';
 
 Set these in `mount()`, `hydrateLifecycle()`, or `updated()`. They appear in the view but are not part of signed state.
 
+## Markup rules
+
+Ripple diffs the HTML your component renders and patches the live DOM, so the markup has to parse the same way on the server and in the browser:
+
+- Write valid HTML. Browsers rewrite invalid nesting (for example a `<p>` inside a `<p>`), which puts patch paths out of sync.
+- Tables are fine as written: Ripple mirrors the `<tbody>` browsers insert around bare `<tr>` rows.
+- Conditional blocks (`#if`) may appear and disappear anywhere. Nodes that exist before and after are patched in place, so inputs keep their focus and typed text.
+- For lists that grow or shrink in the middle, give each item a stable `data-ripple-key` so the right item is patched, inserted or removed:
+
+```odo
+#foreach ($items as $item)
+    <li data-ripple-key="[[ $item->id ]]">[[ $item->name ]]</li>
+#endforeach
+```
+
 ## Creating components
 
 ```bash
