@@ -101,8 +101,8 @@ return [
     | Performance
     |--------------------------------------------------------------------------
     |
-    | debounce_default: Default debounce window (ms) for ripple:bind.live when
-    |                   no explicit .debounce.N modifier is set. Emitted as
+    | debounce_default: Pause (ms) for ripple:bind.debounce when no
+    |                   .debounce.N is set. Emitted as
     |                   <meta name="ripple-debounce"> for the client runtime.
     |
     */

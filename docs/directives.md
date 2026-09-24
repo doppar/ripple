@@ -31,15 +31,19 @@ Sync an input with a public property. On mount (and after each update), Ripple f
 
 | Form | When it syncs |
 |------|----------------|
-| `ripple:bind="name"` | On `change` (blur for text; immediate for checkbox, radio, select) |
+| `ripple:bind="name"` | On the next Ripple request. A call, a `.live` / `.lazy` / `.debounce` update, or a poll sends the current value along. |
 | `ripple:bind.live="q"` | On `input` (each keystroke) |
-| `ripple:bind.live.debounce.300="q"` | Live, debounced by 300ms |
-| `ripple:bind.lazy="bio"` | On `change` only (explicit) |
+| `ripple:bind.lazy="bio"` | On `change` (blur for text) |
+| `ripple:bind.debounce="q"` | On `input`, after the default pause |
+| `ripple:bind.debounce.300="q"` | On `input`, after 300ms |
 
-Default debounce for `.live` without `.debounce.N` comes from config (`performance.debounce_default`, usually 150ms).
+`.live.debounce.300` is the same pause as `.debounce.300`. The default pause is `performance.debounce_default` (usually 150ms).
 
 ```odo
-<input type="text" ripple:bind.live.debounce.400="query">
+<input type="text" ripple:bind="name">
+<input type="search" ripple:bind.live="q">
+<input type="text" ripple:bind.lazy="bio">
+<input type="search" ripple:bind.debounce.300="q">
 <input type="checkbox" ripple:bind="newsletter">
 <select ripple:bind="theme">...</select>
 <input type="file" ripple:bind="avatar">
@@ -110,7 +114,7 @@ Updates for one component run one at a time, in the order they were triggered. E
 ## Tips
 
 - Keep `ripple:call` / `ripple:bind` inside the mounted root. Outside the root they do nothing.
-- Prefer `.live` only where you need instant search-style feedback; default bind is cheaper.
+- Use plain `ripple:bind` when the server only needs the value on the next request. Add `.live` or `.debounce` where it should see each edit.
 - Put layout-level scripts in `<head>` so loading and calls work after soft navigation.
 
 Next: [Lifecycle](lifecycle.md) · [Validation](validation.md) · [Navigation](navigation.md)

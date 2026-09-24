@@ -205,8 +205,10 @@ abstract class Component
 
     /**
      * Apply a client value without running validateOnly (used when flushing a form before an action).
+     *
+     * @param bool $resetValidation Property updates keep existing errors. Actions clear the field.
      */
-    public function syncProperty(string $property, mixed $value): void
+    public function syncProperty(string $property, mixed $value, bool $resetValidation = true): void
     {
         if (! property_exists($this, $property)) {
             throw new \InvalidArgumentException("Property [{$property}] does not exist on " . static::class);
@@ -220,7 +222,9 @@ abstract class Component
 
         $this->updating($property, $value);
 
-        $this->resetValidation($property);
+        if ($resetValidation) {
+            $this->resetValidation($property);
+        }
 
         $ref = new ReflectionProperty($this, $property);
         $ref->setValue($this, $this->castIncoming($ref, $value));

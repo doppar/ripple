@@ -156,6 +156,25 @@ final class ComponentManagerTest extends TestCase
         $this->assertSame(9, $result['s']['count']);
     }
 
+    public function test_property_update_applies_deferred_models(): void
+    {
+        $state = ['email' => '', 'note' => ''];
+        $result = $this->manager->update($this->withSignature([
+            'i' => 'form-defer',
+            'n' => FormComponent::class,
+            't' => 'u',
+            'p' => 'note',
+            'v' => 'typing',
+            'm' => ['email' => 'a@b.co'],
+            's' => $state,
+            'er' => ['email' => ['kept']],
+        ], $this->manager->signer()));
+
+        $this->assertSame('typing', $result['s']['note']);
+        $this->assertSame('a@b.co', $result['s']['email']);
+        $this->assertSame(['kept'], $result['e']['email'] ?? null);
+    }
+
     public function test_property_update_requires_valid_signature(): void
     {
         $this->expectException(\RuntimeException::class);

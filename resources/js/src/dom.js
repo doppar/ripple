@@ -39,6 +39,8 @@ export function payloadFrom(root, extras = {}) {
     if (raw) er = JSON.parse(raw);
   } catch (_) {}
 
+  const m = deferredModels(root, state);
+
   return {
     i: root.getAttribute('data-ripple-id'),
     n: root.getAttribute('data-ripple-name'),
@@ -46,8 +48,31 @@ export function payloadFrom(root, extras = {}) {
     f: root.getAttribute('data-ripple-f') || undefined,
     x: root.getAttribute('data-ripple-x') || undefined,
     ...(er && typeof er === 'object' && Object.keys(er).length ? { er } : {}),
+    ...(Object.keys(m).length ? { m } : {}),
     ...extras,
   };
+}
+
+/**
+ * Plain ripple:bind values that differ from signed state.
+ * They ride along on every request. .live, .lazy, and .debounce sync on their own.
+ */
+function deferredModels(root, state) {
+  const m = {};
+  root.querySelectorAll('input, textarea, select').forEach((el) => {
+    if (rootOf(el) !== root) return;
+    const attr = findAttr(el, 'ripple:bind');
+    if (!attr || el.type === 'file') return;
+    const mods = parseModifiers(attr.name);
+    if (mods.live || mods.lazy || mods.debounce != null) return;
+    if (el.type === 'radio' && !el.checked) return;
+
+    const property = attr.value;
+    const value = el.type === 'checkbox' ? el.checked : el.value;
+    if (Object.prototype.hasOwnProperty.call(state, property) && state[property] === value) return;
+    m[property] = value;
+  });
+  return m;
 }
 
 /** Find first attribute whose name starts with prefix (e.g. ripple:bind). */
@@ -63,8 +88,10 @@ export function parseModifiers(attrName) {
   if (parts.includes('live')) mods.live = true;
   if (parts.includes('lazy')) mods.lazy = true;
   const di = parts.indexOf('debounce');
-  if (di >= 0 && parts[di + 1]) mods.debounce = parseInt(parts[di + 1], 10);
-  else if (mods.live) mods.debounce = defaultDebounce();
+  if (di >= 0) {
+    const n = parseInt(parts[di + 1], 10);
+    mods.debounce = Number.isFinite(n) ? n : defaultDebounce();
+  }
   return mods;
 }
 

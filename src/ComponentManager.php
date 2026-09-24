@@ -146,6 +146,7 @@ final class ComponentManager
                 if ($property === '') {
                     throw new \InvalidArgumentException('Ripple property update requires p.');
                 }
+                $this->syncClientModels($instance, $payload['m'] ?? null, false);
                 $instance->updateProperty($property, $payload['v'] ?? null);
             } else {
                 $action = $payload['a'] ?? null;
@@ -294,7 +295,7 @@ final class ComponentManager
      *
      * @param array<string, mixed>|mixed $models
      */
-    private function syncClientModels(Component $instance, mixed $models): bool
+    private function syncClientModels(Component $instance, mixed $models, bool $resetValidation = true): bool
     {
         if (! is_array($models) || $models === []) {
             return false;
@@ -306,7 +307,7 @@ final class ComponentManager
             }
 
             try {
-                $instance->syncProperty($property, $value);
+                $instance->syncProperty($property, $value, $resetValidation);
             } catch (\InvalidArgumentException) {
                 // Ignore unknown / locked / computed — client may over-report.
             }

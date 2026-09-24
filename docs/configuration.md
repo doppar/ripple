@@ -57,7 +57,7 @@ Default Odo layout for `Route::ripple()` when the component has no `#[Layout]` a
 ],
 ```
 
-Default debounce (ms) for `ripple:bind.live` when no `.debounce.N` is set.
+Default pause (ms) for `ripple:bind.debounce` when no `.debounce.N` is set.
 
 ## File uploads
 
