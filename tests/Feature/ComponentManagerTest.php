@@ -391,6 +391,38 @@ final class ComponentManagerTest extends TestCase
         $this->assertSame([], $insertsAgain, 'Repeat failure must not INSERT another error node');
     }
 
+    public function test_flushed_models_do_not_reinsert_the_same_error_node(): void
+    {
+        $first = $this->manager->update($this->withSignature([
+            'i' => 'ce2',
+            'n' => ConditionalErrorComponent::class,
+            't' => 'a',
+            'a' => 'save',
+            'g' => [],
+            'm' => ['email' => 'not-an-email'],
+            's' => ['email' => ''],
+        ], $this->manager->signer()));
+
+        $this->assertFalse($first['ok']);
+
+        $second = $this->manager->update($this->withSignature([
+            'i' => 'ce2',
+            'n' => ConditionalErrorComponent::class,
+            't' => 'a',
+            'a' => 'save',
+            'g' => [],
+            'm' => ['email' => 'not-an-email'],
+            's' => $first['s'],
+            'er' => $first['e'],
+        ], $this->manager->signer()));
+
+        $insertsAgain = array_values(array_filter(
+            $second['d'] ?? [],
+            static fn (array $o) => ($o['o'] ?? '') === Op::INSERT,
+        ));
+        $this->assertSame([], $insertsAgain);
+    }
+
     public function test_update_delivers_an_event_to_a_listener_that_is_not_invokable(): void
     {
         $result = $this->manager->update($this->withSignature([

@@ -118,9 +118,6 @@ final class ComponentManager
             allowLocked: $verified,
         );
 
-        // Prior errors stay in the baseline so the live DOM (which still shows
-        // them) diffs correctly — including #if error blocks. Re-diffing from a
-        // cleared tree would INSERT those blocks again and stack duplicates.
         if (isset($payload['er']) && is_array($payload['er'])) {
             /** @var array<string, list<string>> $er */
             $er = $payload['er'];
@@ -128,14 +125,12 @@ final class ComponentManager
         }
         $flushedModels = false;
         if ($type !== 'u') {
-            $flushedModels = $this->syncClientModels($instance, $payload['m'] ?? null);
+            $flushedModels = $this->syncClientModels($instance, $payload['m'] ?? null, false);
         }
 
         $oldHtml = $this->renderHtml($instance);
         $oldTree = $this->parser->parse($oldHtml);
 
-        // Snapshot first. Clearing before the baseline render makes the diff INSERT
-        // error blocks the browser is still showing.
         if ($flushedModels) {
             $instance->setErrorBag([]);
         }
