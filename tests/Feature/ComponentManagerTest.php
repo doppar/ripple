@@ -5,6 +5,7 @@ namespace Doppar\Ripple\Tests\Feature;
 use Doppar\Ripple\ComponentManager;
 use Doppar\Ripple\Delta\Op;
 use Doppar\Ripple\State\StateSigner;
+use Doppar\Ripple\Support\Config;
 use Doppar\Ripple\Tests\Fixtures\ArgComponent;
 use Doppar\Ripple\Tests\Fixtures\ConditionalErrorComponent;
 use Doppar\Ripple\Tests\Fixtures\CounterComponent;
@@ -85,6 +86,8 @@ final class ComponentManagerTest extends TestCase
             $this->assertStringContainsString('name="ripple-update"', $html);
             $this->assertStringContainsString('name="ripple-lazy"', $html);
             $this->assertStringContainsString('name="ripple-upload"', $html);
+            $this->assertStringContainsString('name="ripple-navigate-progress" content="1"', $html);
+            $this->assertStringContainsString('name="ripple-navigate-progress-color" content="#2299dd"', $html);
             $this->assertStringContainsString('ripple.min.js', $html);
         } finally {
             $harness->destroy();
@@ -96,6 +99,20 @@ final class ComponentManagerTest extends TestCase
         Container::getInstance()->instance(ComponentManager::class, $this->manager);
 
         $this->assertSame($this->manager->scripts(), ripple_scripts());
+    }
+
+    public function test_scripts_can_disable_navigate_progress(): void
+    {
+        Config::set('ripple.navigate.show_progress_bar', false);
+        Config::set('ripple.navigate.progress_bar_color', '#ff0000');
+
+        try {
+            $html = $this->manager->scripts();
+            $this->assertStringContainsString('name="ripple-navigate-progress" content="0"', $html);
+            $this->assertStringContainsString('name="ripple-navigate-progress-color" content="#ff0000"', $html);
+        } finally {
+            Config::clear();
+        }
     }
 
     public function test_update_returns_short_wire_payload_with_delta(): void

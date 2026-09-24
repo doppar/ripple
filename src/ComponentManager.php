@@ -269,6 +269,11 @@ final class ComponentManager
             ? '<meta name="csrf-token" content="' . $h($csrf) . '">'
             : '';
         $debounce = (int) Config::get('ripple.performance.debounce_default', 150);
+        $showProgress = filter_var(
+            Config::get('ripple.navigate.show_progress_bar', true),
+            FILTER_VALIDATE_BOOLEAN,
+        );
+        $progressColor = (string) Config::get('ripple.navigate.progress_bar_color', '#2299dd');
 
         return $csrfMeta
             . '<meta name="ripple-update" content="' . $h((string) Config::get('ripple.update_uri', '/ripple/update')) . '">'
@@ -276,6 +281,8 @@ final class ComponentManager
             . '<meta name="ripple-upload" content="' . $h((string) Config::get('ripple.upload_uri', '/ripple/upload')) . '">'
             . '<meta name="ripple-preview" content="' . $h((string) Config::get('ripple.preview_uri', '/ripple/preview')) . '">'
             . '<meta name="ripple-debounce" content="' . $h((string) max(0, $debounce)) . '">'
+            . '<meta name="ripple-navigate-progress" content="' . ($showProgress ? '1' : '0') . '">'
+            . '<meta name="ripple-navigate-progress-color" content="' . $h($progressColor) . '">'
             . '<script src="' . $src . '" defer></script>';
     }
 

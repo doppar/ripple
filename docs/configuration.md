@@ -59,6 +59,17 @@ Default Odo layout for `Route::ripple()` when the component has no `#[Layout]` a
 
 Default pause (ms) for `ripple:bind.debounce` when no `.debounce.N` is set.
 
+## Soft navigation
+
+```php
+'navigate' => [
+    'show_progress_bar' => env('RIPPLE_NAVIGATE_PROGRESS', true),
+    'progress_bar_color' => env('RIPPLE_NAVIGATE_PROGRESS_COLOR', '#2299dd'),
+],
+```
+
+Top progress bar during soft navigations (`ripple:navigate`, soft redirects, `popstate`). See [Navigation](navigation.md#progress-bar).
+
 ## File uploads
 
 ```php
@@ -78,6 +89,8 @@ See [File uploads](file-uploads.md).
 RIPPLE_SIGNING_KEY=
 RIPPLE_VERIFY_STATE=property-updates
 RIPPLE_DEBOUNCE_DEFAULT=150
+RIPPLE_NAVIGATE_PROGRESS=true
+RIPPLE_NAVIGATE_PROGRESS_COLOR=#2299dd
 RIPPLE_FILE_DISK=local
 RIPPLE_FILE_TEMP_PATH=ripple/temp
 RIPPLE_FILE_MAX_SIZE=12288

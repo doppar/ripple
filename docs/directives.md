@@ -91,7 +91,7 @@ Intercept same-origin link clicks and soft-navigate (fetch HTML, swap `body`, `p
 <a href="/ripple/counter" ripple:navigate>Counter</a>
 ```
 
-Skipped automatically for modified clicks, new tabs (`target`), downloads, cross-origin URLs, and hash-only same-page links. Scripts in the layout `<head>` (including `Ripple::scripts()`) stay loaded across soft navigations.
+Skipped automatically for modified clicks, new tabs (`target`), downloads, cross-origin URLs, and hash-only same-page links. Scripts in the layout `<head>` (including `Ripple::scripts()`) stay loaded across soft navigations. A top progress bar shows when the fetch takes longer than ~150ms; see [Navigation](navigation.md#progress-bar).
 
 ## Polling
 

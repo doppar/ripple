@@ -1,12 +1,20 @@
 /** Soft page navigation: fetch HTML, swap body, pushState, remount Ripple. */
 
+import { startProgress, finishProgress } from './progress.js';
+
 let navigating = false;
 
 export async function softNavigate(url, { push = true } = {}) {
   if (navigating) return;
   navigating = true;
+
+  const abs = new URL(url, window.location.href);
+  startProgress();
+  window.dispatchEvent(
+    new CustomEvent('ripple:navigating', { detail: { url: abs.href } }),
+  );
+
   try {
-    const abs = new URL(url, window.location.href);
     if (abs.origin !== window.location.origin) {
       window.location.assign(abs.href);
       return;
@@ -26,10 +34,11 @@ export async function softNavigate(url, { push = true } = {}) {
     }
 
     const html = await res.text();
-    applyDocument(html, push ? (res.url || abs.href) : null);
+    applyDocument(html, push ? res.url || abs.href : null);
   } catch (_) {
     window.location.assign(url);
   } finally {
+    finishProgress();
     navigating = false;
   }
 }

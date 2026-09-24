@@ -113,6 +113,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Soft Navigation
+    |--------------------------------------------------------------------------
+    |
+    | Progress bar shown during softNavigate (ripple:navigate links, soft
+    | redirects, popstate). Bar mounts on <html> so body swaps keep it.
+    | Emitted as <meta name="ripple-navigate-progress"> and
+    | <meta name="ripple-navigate-progress-color"> for the client.
+    |
+    */
+
+    'navigate' => [
+        'show_progress_bar' => env('RIPPLE_NAVIGATE_PROGRESS', true),
+        'progress_bar_color' => env('RIPPLE_NAVIGATE_PROGRESS_COLOR', '#2299dd'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | File Uploads
     |--------------------------------------------------------------------------
     |
