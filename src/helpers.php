@@ -19,7 +19,7 @@ if (! function_exists('ripple')) {
 if (! function_exists('ripple_scripts')) {
     /**
      * Render the Ripple client script and its configuration meta tags.
-     * 
+     *
      * ripple_scripts() resolves \Doppar\Ripple\Facade\Ripple::scripts().
      */
     function ripple_scripts(): string
