@@ -198,7 +198,7 @@ abstract class Component
     {
         $this->syncProperty($property, $value);
 
-        if (array_key_exists($property, $this->rules())) {
+        if ($this->fieldsToRevalidate($property) !== []) {
             $this->validateOnly($property);
         }
     }
@@ -516,20 +516,77 @@ abstract class Component
     protected function validateOnly(string $field): void
     {
         $rules = $this->rules();
-        if (! isset($rules[$field])) {
+        $fields = $this->fieldsToRevalidate($field);
+        if ($fields === []) {
             return;
         }
 
         $kept = $this->errorBag;
-        unset($kept[$field]);
+        $subset = [];
+        foreach ($fields as $name) {
+            unset($kept[$name]);
+            $subset[$name] = $rules[$name];
+        }
 
         try {
             $this->errorBag = [];
-            $this->validate([$field => $rules[$field]]);
+            $this->validate($subset);
             $this->errorBag = $kept;
         } catch (ValidationException $e) {
             $this->errorBag = array_merge($kept, $e->errors());
         }
+    }
+
+    /**
+     * The changed field, plus any other field whose rule reads it.
+     *
+     * @return list<string>
+     */
+    private function fieldsToRevalidate(string $field): array
+    {
+        $rules = $this->rules();
+        $fields = [];
+
+        if (array_key_exists($field, $rules)) {
+            $fields[] = $field;
+        }
+
+        foreach ($rules as $name => $rule) {
+            if ($name === $field || $rule instanceof Bind) {
+                continue;
+            }
+
+            $spec = is_array($rule) ? implode('|', $rule) : (string) $rule;
+            if ($this->ruleReadsField($spec, (string) $name, $field)) {
+                $fields[] = (string) $name;
+            }
+        }
+
+        return $fields;
+    }
+
+    private function ruleReadsField(string $spec, string $owner, string $changed): bool
+    {
+        foreach (explode('|', $spec) as $rule) {
+            $rule = trim($rule);
+            if ($rule === '') {
+                continue;
+            }
+
+            $parts = explode(':', $rule, 2);
+            $name = $parts[0];
+            $param = $parts[1] ?? null;
+
+            if ($name === 'confirmed' && $changed === $owner . '_confirmation') {
+                return true;
+            }
+
+            if (($name === 'different' || $name === 'same_as') && $param === $changed) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function resetValidation(?string $field = null): void

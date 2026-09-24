@@ -237,6 +237,37 @@ final class ComponentTest extends TestCase
         }
     }
 
+    public function test_confirmation_update_rechecks_confirmed_field(): void
+    {
+        $c = new class () extends \Doppar\Ripple\Component {
+            public string $password = '';
+
+            public string $password_confirmation = '';
+
+            protected function rules(): array
+            {
+                return [
+                    'password' => 'required|confirmed',
+                    'password_confirmation' => 'required',
+                ];
+            }
+
+            public function render(): string
+            {
+                return '<div></div>';
+            }
+        };
+
+        $c->updateProperty('password', 'secret');
+        $this->assertArrayHasKey('password', $c->getErrorBag());
+
+        $c->updateProperty('password_confirmation', 'secret');
+        $this->assertSame([], $c->getErrorBag());
+
+        $c->updateProperty('password_confirmation', 'other');
+        $this->assertArrayHasKey('password', $c->getErrorBag());
+    }
+
     public function test_update_property_clears_field_error_then_revalidates(): void
     {
         $c = new FormComponent();
