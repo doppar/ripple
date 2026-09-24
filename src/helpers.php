@@ -15,3 +15,15 @@ if (! function_exists('ripple')) {
         return Ripple::mount($component, $params);
     }
 }
+
+if (! function_exists('ripple_scripts')) {
+    /**
+     * Render the Ripple client script and its configuration meta tags.
+     *
+     * ripple_scripts() resolves \Doppar\Ripple\Facade\Ripple::scripts().
+     */
+    function ripple_scripts(): string
+    {
+        return Ripple::scripts();
+    }
+}

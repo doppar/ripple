@@ -91,6 +91,13 @@ final class ComponentManagerTest extends TestCase
         }
     }
 
+    public function test_ripple_scripts_helper_delegates_to_manager(): void
+    {
+        Container::getInstance()->instance(ComponentManager::class, $this->manager);
+
+        $this->assertSame($this->manager->scripts(), ripple_scripts());
+    }
+
     public function test_update_returns_short_wire_payload_with_delta(): void
     {
         $result = $this->manager->update($this->withSignature([
