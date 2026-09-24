@@ -34,7 +34,7 @@ php pool vendor:publish --tag=ripple-assets
 Include the client once in your layout `<head>`:
 
 ```odo
-[[! \Doppar\Ripple\Facade\Ripple::scripts() !]]
+[[! ripple_scripts() !]]
 ```
 
 ## Quick start
