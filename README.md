@@ -90,7 +90,7 @@ Full guides live in [`docs/`](docs/README.md):
 | [Installation](docs/installation.md) | Setup, assets, layout scripts |
 | [Getting started](docs/getting-started.md) | First component end to end |
 | [Components](docs/components.md) | State, attributes, render |
-| [Directives](docs/directives.md) | `ripple:call`, bind, loading, poll |
+| [Directives](docs/directives.md) | `ripple:call`, `ripple:submit`, bind, loading, poll |
 | [Lifecycle](docs/lifecycle.md) | `mount`, `updated`, hooks |
 | [Validation](docs/validation.md) | Rules and `$errors` |
 | [Events](docs/events.md) | Component and browser events |

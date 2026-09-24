@@ -102,6 +102,21 @@ export function parseInterval(value) {
   return parseInt(value, 10) || 2000;
 }
 
+/**
+ * Action for a form submit.
+ * Button ripple:submit wins, then the form.
+ * @returns {{ el: Element, expr: string } | null}
+ */
+export function submitAction(form, submitter) {
+  const fromSubmit = (el) => {
+    if (!el || !el.hasAttribute('ripple:submit')) return null;
+    const expr = el.getAttribute('ripple:submit');
+    return expr ? { el, expr } : null;
+  };
+
+  return fromSubmit(submitter) || fromSubmit(form);
+}
+
 /** Parse ripple:call="save" or ripple:call="toggle(3)" / remove('x'). */
 export function parseCall(expr) {
   const raw = String(expr || '').trim();

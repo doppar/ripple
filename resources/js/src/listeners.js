@@ -1,4 +1,4 @@
-import { findAttr, parseCall, payloadFrom, rootOf } from './dom.js';
+import { findAttr, parseCall, payloadFrom, rootOf, submitAction } from './dom.js';
 import { enqueue, send } from './http.js';
 import { confirmAction } from './confirm.js';
 import { startLoading } from './loading.js';
@@ -74,8 +74,6 @@ export function bindListeners() {
 
         const btn = e.target.closest('[ripple\\:call]');
         if (!btn) return;
-        const on = (btn.getAttribute('ripple:on') || 'click').toLowerCase();
-        if (on !== 'click') return;
         const root = rootOf(btn);
         if (!root) return;
         if (!confirmAction(btn)) return;
@@ -89,15 +87,16 @@ export function bindListeners() {
     document.addEventListener(
       'submit',
       (e) => {
-        const form = e.target.closest('[ripple\\:call]');
+        const form = e.target?.closest?.('form');
         if (!form) return;
-        const on = (form.getAttribute('ripple:on') || 'click').toLowerCase();
-        if (on !== 'submit') return;
-        const root = rootOf(form);
+        const submitter = e.submitter instanceof Element ? e.submitter : null;
+        const hit = submitAction(form, submitter);
+        if (!hit) return;
+        const root = rootOf(hit.el) || rootOf(form);
         if (!root) return;
-        if (!confirmAction(form)) return;
+        if (!confirmAction(hit.el)) return;
         e.preventDefault();
-        const { action, args } = parseCall(form.getAttribute('ripple:call'));
+        const { action, args } = parseCall(hit.expr);
         runCall(root, action, args).catch(() => {});
       },
       true,
