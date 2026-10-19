@@ -96,22 +96,43 @@ final class ComponentManagerTest extends TestCase
 
     public function test_ripple_scripts_helper_delegates_to_manager(): void
     {
-        Container::getInstance()->instance(ComponentManager::class, $this->manager);
+        $harness = new AppHarness(sys_get_temp_dir() . '/ripple-scripts-helper-' . bin2hex(random_bytes(4)));
 
-        $this->assertSame($this->manager->scripts(), ripple_scripts());
+        try {
+            $harness->instance('session', new class () {
+                public function get(mixed $key, mixed $default = null): mixed
+                {
+                    return $key === '_token' ? 'test-csrf' : $default;
+                }
+            });
+            $harness->instance(ComponentManager::class, $this->manager);
+
+            $this->assertSame($this->manager->scripts(), ripple_scripts());
+        } finally {
+            $harness->destroy();
+        }
     }
 
     public function test_scripts_can_disable_navigate_progress(): void
     {
+        $harness = new AppHarness(sys_get_temp_dir() . '/ripple-scripts-progress-' . bin2hex(random_bytes(4)));
         Config::set('ripple.navigate.show_progress_bar', false);
         Config::set('ripple.navigate.progress_bar_color', '#ff0000');
 
         try {
+            $harness->instance('session', new class () {
+                public function get(mixed $key, mixed $default = null): mixed
+                {
+                    return $default;
+                }
+            });
+
             $html = $this->manager->scripts();
             $this->assertStringContainsString('name="ripple-navigate-progress" content="0"', $html);
             $this->assertStringContainsString('name="ripple-navigate-progress-color" content="#ff0000"', $html);
         } finally {
             Config::clear();
+            $harness->destroy();
         }
     }
 
