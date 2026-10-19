@@ -14,14 +14,23 @@ Call an `#[Invokable]` method.
 
 Arguments are parsed from the attribute string and sent to the server.
 
-### Event: `ripple:on`
+### Forms: `ripple:submit`
 
-Default trigger is `click`. For forms, use `submit`:
+Call an `#[Invokable]` method when the form is submitted. The browser does not navigate.
 
 ```odo
-<form ripple:call="save" ripple:on="submit">
+<form ripple:submit="save">
     <input ripple:bind="email">
     <button type="submit">Save</button>
+</form>
+```
+
+A submit button can name its own method. That wins over `ripple:submit` on the form:
+
+```odo
+<form ripple:submit="save">
+    <button type="submit">Save</button>
+    <button type="submit" ripple:submit="saveDraft">Save draft</button>
 </form>
 ```
 
@@ -31,15 +40,19 @@ Sync an input with a public property. On mount (and after each update), Ripple f
 
 | Form | When it syncs |
 |------|----------------|
-| `ripple:bind="name"` | On `change` (blur for text; immediate for checkbox, radio, select) |
+| `ripple:bind="name"` | On the next Ripple request. A call, a `.live` / `.lazy` / `.debounce` update, or a poll sends the current value along. |
 | `ripple:bind.live="q"` | On `input` (each keystroke) |
-| `ripple:bind.live.debounce.300="q"` | Live, debounced by 300ms |
-| `ripple:bind.lazy="bio"` | On `change` only (explicit) |
+| `ripple:bind.lazy="bio"` | On `change` (blur for text) |
+| `ripple:bind.debounce="q"` | On `input`, after the default pause |
+| `ripple:bind.debounce.300="q"` | On `input`, after 300ms |
 
-Default debounce for `.live` without `.debounce.N` comes from config (`performance.debounce_default`, usually 150ms).
+`.live.debounce.300` is the same pause as `.debounce.300`. The default pause is `performance.debounce_default` (usually 150ms).
 
 ```odo
-<input type="text" ripple:bind.live.debounce.400="query">
+<input type="text" ripple:bind="name">
+<input type="search" ripple:bind.live="q">
+<input type="text" ripple:bind.lazy="bio">
+<input type="search" ripple:bind.debounce.300="q">
 <input type="checkbox" ripple:bind="newsletter">
 <select ripple:bind="theme">...</select>
 <input type="file" ripple:bind="avatar">
@@ -78,7 +91,7 @@ Intercept same-origin link clicks and soft-navigate (fetch HTML, swap `body`, `p
 <a href="/ripple/counter" ripple:navigate>Counter</a>
 ```
 
-Skipped automatically for modified clicks, new tabs (`target`), downloads, cross-origin URLs, and hash-only same-page links. Scripts in the layout `<head>` (including `Ripple::scripts()`) stay loaded across soft navigations.
+Skipped automatically for modified clicks, new tabs (`target`), downloads, cross-origin URLs, and hash-only same-page links. Scripts in the layout `<head>` (including `Ripple::scripts()`) stay loaded across soft navigations. A top progress bar shows when the fetch takes longer than ~150ms; see [Navigation](navigation.md#progress-bar).
 
 ## Polling
 
@@ -109,8 +122,8 @@ Updates for one component run one at a time, in the order they were triggered. E
 
 ## Tips
 
-- Keep `ripple:call` / `ripple:bind` inside the mounted root. Outside the root they do nothing.
-- Prefer `.live` only where you need instant search-style feedback; default bind is cheaper.
+- Keep `ripple:call`, `ripple:submit`, and `ripple:bind` inside the mounted root. Outside the root they do nothing.
+- Use plain `ripple:bind` when the server only needs the value on the next request. Add `.live` or `.debounce` where it should see each edit.
 - Put layout-level scripts in `<head>` so loading and calls work after soft navigation.
 
 Next: [Lifecycle](lifecycle.md) · [Validation](validation.md) · [Navigation](navigation.md)

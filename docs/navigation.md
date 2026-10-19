@@ -12,6 +12,24 @@ The client fetches the target HTML, replaces `document.body`, updates the URL wi
 
 See [Directives](directives.md#spa-links-ripplenavigate).
 
+## Progress bar
+
+Soft navigations show a thin top progress bar when the request takes longer than ~150ms. It mounts on `<html>` so it survives the body swap.
+
+```php
+'navigate' => [
+    'show_progress_bar' => true,
+    'progress_bar_color' => '#2299dd',
+],
+```
+
+Set `show_progress_bar` to `false` to disable. Color can also be overridden in CSS via `--ripple-progress` on `#ripple-progress`.
+
+Events:
+
+- `ripple:navigating` — fired when a soft navigate starts (`detail.url`)
+- `ripple:navigated` — fired after the new body is applied (`detail.url`)
+
 ## Soft redirect (default)
 
 ```php
@@ -44,7 +62,7 @@ Use this for logout, external hand-offs, or when the next page must boot from sc
 
 ## Full-page routes: `Route::ripple()`
 
-Register a component as the whole page (Livewire-style `Route::livewire`):
+Register a component as the whole page:
 
 ```php
 use Phaseolies\Support\Facades\Route;

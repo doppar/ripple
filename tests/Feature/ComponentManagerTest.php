@@ -5,6 +5,7 @@ namespace Doppar\Ripple\Tests\Feature;
 use Doppar\Ripple\ComponentManager;
 use Doppar\Ripple\Delta\Op;
 use Doppar\Ripple\State\StateSigner;
+use Doppar\Ripple\Support\Config;
 use Doppar\Ripple\Tests\Fixtures\ArgComponent;
 use Doppar\Ripple\Tests\Fixtures\ConditionalErrorComponent;
 use Doppar\Ripple\Tests\Fixtures\CounterComponent;
@@ -85,6 +86,8 @@ final class ComponentManagerTest extends TestCase
             $this->assertStringContainsString('name="ripple-update"', $html);
             $this->assertStringContainsString('name="ripple-lazy"', $html);
             $this->assertStringContainsString('name="ripple-upload"', $html);
+            $this->assertStringContainsString('name="ripple-navigate-progress" content="1"', $html);
+            $this->assertStringContainsString('name="ripple-navigate-progress-color" content="#2299dd"', $html);
             $this->assertStringContainsString('ripple.min.js', $html);
         } finally {
             $harness->destroy();
@@ -93,9 +96,44 @@ final class ComponentManagerTest extends TestCase
 
     public function test_ripple_scripts_helper_delegates_to_manager(): void
     {
-        Container::getInstance()->instance(ComponentManager::class, $this->manager);
+        $harness = new AppHarness(sys_get_temp_dir() . '/ripple-scripts-helper-' . bin2hex(random_bytes(4)));
 
-        $this->assertSame($this->manager->scripts(), ripple_scripts());
+        try {
+            $harness->instance('session', new class () {
+                public function get(mixed $key, mixed $default = null): mixed
+                {
+                    return $key === '_token' ? 'test-csrf' : $default;
+                }
+            });
+            $harness->instance(ComponentManager::class, $this->manager);
+
+            $this->assertSame($this->manager->scripts(), ripple_scripts());
+        } finally {
+            $harness->destroy();
+        }
+    }
+
+    public function test_scripts_can_disable_navigate_progress(): void
+    {
+        $harness = new AppHarness(sys_get_temp_dir() . '/ripple-scripts-progress-' . bin2hex(random_bytes(4)));
+        Config::set('ripple.navigate.show_progress_bar', false);
+        Config::set('ripple.navigate.progress_bar_color', '#ff0000');
+
+        try {
+            $harness->instance('session', new class () {
+                public function get(mixed $key, mixed $default = null): mixed
+                {
+                    return $default;
+                }
+            });
+
+            $html = $this->manager->scripts();
+            $this->assertStringContainsString('name="ripple-navigate-progress" content="0"', $html);
+            $this->assertStringContainsString('name="ripple-navigate-progress-color" content="#ff0000"', $html);
+        } finally {
+            Config::clear();
+            $harness->destroy();
+        }
     }
 
     public function test_update_returns_short_wire_payload_with_delta(): void
@@ -154,6 +192,25 @@ final class ComponentManagerTest extends TestCase
         ]);
 
         $this->assertSame(9, $result['s']['count']);
+    }
+
+    public function test_property_update_applies_deferred_models(): void
+    {
+        $state = ['email' => '', 'note' => ''];
+        $result = $this->manager->update($this->withSignature([
+            'i' => 'form-defer',
+            'n' => FormComponent::class,
+            't' => 'u',
+            'p' => 'note',
+            'v' => 'typing',
+            'm' => ['email' => 'a@b.co'],
+            's' => $state,
+            'er' => ['email' => ['kept']],
+        ], $this->manager->signer()));
+
+        $this->assertSame('typing', $result['s']['note']);
+        $this->assertSame('a@b.co', $result['s']['email']);
+        $this->assertSame(['kept'], $result['e']['email'] ?? null);
     }
 
     public function test_property_update_requires_valid_signature(): void
@@ -370,6 +427,38 @@ final class ComponentManagerTest extends TestCase
             static fn (array $o) => ($o['o'] ?? '') === Op::INSERT,
         ));
         $this->assertSame([], $insertsAgain, 'Repeat failure must not INSERT another error node');
+    }
+
+    public function test_flushed_models_do_not_reinsert_the_same_error_node(): void
+    {
+        $first = $this->manager->update($this->withSignature([
+            'i' => 'ce2',
+            'n' => ConditionalErrorComponent::class,
+            't' => 'a',
+            'a' => 'save',
+            'g' => [],
+            'm' => ['email' => 'not-an-email'],
+            's' => ['email' => ''],
+        ], $this->manager->signer()));
+
+        $this->assertFalse($first['ok']);
+
+        $second = $this->manager->update($this->withSignature([
+            'i' => 'ce2',
+            'n' => ConditionalErrorComponent::class,
+            't' => 'a',
+            'a' => 'save',
+            'g' => [],
+            'm' => ['email' => 'not-an-email'],
+            's' => $first['s'],
+            'er' => $first['e'],
+        ], $this->manager->signer()));
+
+        $insertsAgain = array_values(array_filter(
+            $second['d'] ?? [],
+            static fn (array $o) => ($o['o'] ?? '') === Op::INSERT,
+        ));
+        $this->assertSame([], $insertsAgain);
     }
 
     public function test_update_delivers_an_event_to_a_listener_that_is_not_invokable(): void

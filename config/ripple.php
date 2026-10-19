@@ -101,14 +101,31 @@ return [
     | Performance
     |--------------------------------------------------------------------------
     |
-    | debounce_default: Default debounce window (ms) for ripple:bind.live when
-    |                   no explicit .debounce.N modifier is set. Emitted as
+    | debounce_default: Pause (ms) for ripple:bind.debounce when no
+    |                   .debounce.N is set. Emitted as
     |                   <meta name="ripple-debounce"> for the client runtime.
     |
     */
 
     'performance' => [
         'debounce_default' => env('RIPPLE_DEBOUNCE_DEFAULT', 150),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Soft Navigation
+    |--------------------------------------------------------------------------
+    |
+    | Progress bar shown during softNavigate (ripple:navigate links, soft
+    | redirects, popstate). Bar mounts on <html> so body swaps keep it.
+    | Emitted as <meta name="ripple-navigate-progress"> and
+    | <meta name="ripple-navigate-progress-color"> for the client.
+    |
+    */
+
+    'navigate' => [
+        'show_progress_bar' => env('RIPPLE_NAVIGATE_PROGRESS', true),
+        'progress_bar_color' => env('RIPPLE_NAVIGATE_PROGRESS_COLOR', '#2299dd'),
     ],
 
     /*

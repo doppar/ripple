@@ -66,16 +66,15 @@ export function bindModels(root) {
     const attr = findAttr(el, 'ripple:bind');
     if (!attr || el.type === 'file') return;
     const mods = parseModifiers(attr.name);
+    if (!mods.live && mods.debounce == null) return;
     const property = attr.value;
     const value = inputValue(el);
-    if (mods.live) {
-      if (!el._rippleHandler) {
-        let handler = (v) => updateProp(rootOf(el) || root, property, v);
-        if (mods.debounce) handler = debounce(handler, mods.debounce);
-        el._rippleHandler = handler;
-      }
-      el._rippleHandler(value);
+    if (!el._rippleHandler) {
+      let handler = (v) => updateProp(rootOf(el) || root, property, v);
+      if (mods.debounce != null) handler = debounce(handler, mods.debounce);
+      el._rippleHandler = handler;
     }
+    el._rippleHandler(value);
   });
 
   root.addEventListener('change', (e) => {
@@ -91,11 +90,10 @@ export function bindModels(root) {
       return;
     }
 
+    if (!mods.lazy || mods.live || mods.debounce != null) return;
+
     const value = inputValue(el);
     if (el.type === 'radio' && !el.checked) return;
-
-    if (mods.lazy || el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'radio' || !mods.live) {
-      if (!mods.live) updateProp(mount, property, value);
-    }
+    updateProp(mount, property, value);
   });
 }

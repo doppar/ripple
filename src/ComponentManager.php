@@ -118,9 +118,6 @@ final class ComponentManager
             allowLocked: $verified,
         );
 
-        // Prior errors stay in the baseline so the live DOM (which still shows
-        // them) diffs correctly — including #if error blocks. Re-diffing from a
-        // cleared tree would INSERT those blocks again and stack duplicates.
         if (isset($payload['er']) && is_array($payload['er'])) {
             /** @var array<string, list<string>> $er */
             $er = $payload['er'];
@@ -128,14 +125,12 @@ final class ComponentManager
         }
         $flushedModels = false;
         if ($type !== 'u') {
-            $flushedModels = $this->syncClientModels($instance, $payload['m'] ?? null);
+            $flushedModels = $this->syncClientModels($instance, $payload['m'] ?? null, false);
         }
 
         $oldHtml = $this->renderHtml($instance);
         $oldTree = $this->parser->parse($oldHtml);
 
-        // Snapshot first. Clearing before the baseline render makes the diff INSERT
-        // error blocks the browser is still showing.
         if ($flushedModels) {
             $instance->setErrorBag([]);
         }
@@ -146,6 +141,7 @@ final class ComponentManager
                 if ($property === '') {
                     throw new \InvalidArgumentException('Ripple property update requires p.');
                 }
+                $this->syncClientModels($instance, $payload['m'] ?? null, false);
                 $instance->updateProperty($property, $payload['v'] ?? null);
             } else {
                 $action = $payload['a'] ?? null;
@@ -273,6 +269,11 @@ final class ComponentManager
             ? '<meta name="csrf-token" content="' . $h($csrf) . '">'
             : '';
         $debounce = (int) Config::get('ripple.performance.debounce_default', 150);
+        $showProgress = filter_var(
+            Config::get('ripple.navigate.show_progress_bar', true),
+            FILTER_VALIDATE_BOOLEAN,
+        );
+        $progressColor = (string) Config::get('ripple.navigate.progress_bar_color', '#2299dd');
 
         return $csrfMeta
             . '<meta name="ripple-update" content="' . $h((string) Config::get('ripple.update_uri', '/ripple/update')) . '">'
@@ -280,6 +281,8 @@ final class ComponentManager
             . '<meta name="ripple-upload" content="' . $h((string) Config::get('ripple.upload_uri', '/ripple/upload')) . '">'
             . '<meta name="ripple-preview" content="' . $h((string) Config::get('ripple.preview_uri', '/ripple/preview')) . '">'
             . '<meta name="ripple-debounce" content="' . $h((string) max(0, $debounce)) . '">'
+            . '<meta name="ripple-navigate-progress" content="' . ($showProgress ? '1' : '0') . '">'
+            . '<meta name="ripple-navigate-progress-color" content="' . $h($progressColor) . '">'
             . '<script src="' . $src . '" defer></script>';
     }
 
@@ -294,7 +297,7 @@ final class ComponentManager
      *
      * @param array<string, mixed>|mixed $models
      */
-    private function syncClientModels(Component $instance, mixed $models): bool
+    private function syncClientModels(Component $instance, mixed $models, bool $resetValidation = true): bool
     {
         if (! is_array($models) || $models === []) {
             return false;
@@ -306,7 +309,7 @@ final class ComponentManager
             }
 
             try {
-                $instance->syncProperty($property, $value);
+                $instance->syncProperty($property, $value, $resetValidation);
             } catch (\InvalidArgumentException) {
                 // Ignore unknown / locked / computed — client may over-report.
             }
