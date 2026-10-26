@@ -11,10 +11,21 @@ use Phaseolies\Http\Response\JsonResponse;
 
 final class UploadController
 {
+    /**
+     * Create a new upload controller instance.
+     *
+     * @param FileUploadService $uploads
+     */
     public function __construct(private readonly FileUploadService $uploads)
     {
     }
 
+    /**
+     * Validate and store an uploaded file as a temporary upload.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function upload(Request $request): JsonResponse
     {
         try {
@@ -63,6 +74,12 @@ final class UploadController
         }
     }
 
+    /**
+     * Stream a temporary upload back for preview.
+     *
+     * @param Request $request
+     * @return Response
+     */
     public function preview(Request $request): Response
     {
         $id = (string) $request->input('id', '');
@@ -87,6 +104,13 @@ final class UploadController
         ]);
     }
 
+    /**
+     * Build a failed upload JSON response.
+     *
+     * @param string $message
+     * @param int $status
+     * @return JsonResponse
+     */
     private function fail(string $message, int $status): JsonResponse
     {
         return new JsonResponse([
@@ -96,6 +120,12 @@ final class UploadController
         ], $status);
     }
 
+    /**
+     * Get the uploaded file size in bytes, or 0 when it cannot be read.
+     *
+     * @param mixed $file
+     * @return int
+     */
     private function safeSize(mixed $file): int
     {
         if (! method_exists($file, 'getSize')) {
@@ -109,6 +139,12 @@ final class UploadController
         }
     }
 
+    /**
+     * Map a PHP upload error code to a readable message.
+     *
+     * @param int $code
+     * @return string
+     */
     private function phpUploadErrorMessage(int $code): string
     {
         $ini = (string) (ini_get('upload_max_filesize') ?: 'unknown');

@@ -10,10 +10,21 @@ use Phaseolies\Http\Response\JsonResponse;
 
 final class UpdateController
 {
+    /**
+     * Create a new update controller instance.
+     *
+     * @param ComponentManager $manager
+     */
     public function __construct(private readonly ComponentManager $manager)
     {
     }
 
+    /**
+     * Handle a component update request and return the JSON result.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function handle(Request $request): JsonResponse
     {
         $payload = $this->payload($request);
@@ -38,6 +49,12 @@ final class UpdateController
         // (debug page when APP_DEBUG, production 500 page otherwise).
     }
 
+    /**
+     * Load and render a lazy component on demand.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function lazy(Request $request): JsonResponse
     {
         $json = $this->jsonBody($request);
@@ -53,6 +70,9 @@ final class UpdateController
     }
 
     /**
+     * Build the update payload from the JSON body, falling back to request input.
+     *
+     * @param Request $request
      * @return array<string, mixed>
      */
     private function payload(Request $request): array
@@ -77,6 +97,9 @@ final class UpdateController
     }
 
     /**
+     * Decode the request body as a JSON array, or return an empty array.
+     *
+     * @param Request $request
      * @return array<string, mixed>
      */
     private function jsonBody(Request $request): array

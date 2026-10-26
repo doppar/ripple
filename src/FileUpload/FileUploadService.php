@@ -6,6 +6,13 @@ use Doppar\Ripple\Support\Config;
 
 final class FileUploadService
 {
+    /**
+     * Store an uploaded file under the temporary path and return its identifier.
+     *
+     * @param mixed $file
+     * @param string $componentId
+     * @return string
+     */
     public function storeTemporary(mixed $file, string $componentId): string
     {
         $disk = $this->diskName();
@@ -44,6 +51,12 @@ final class FileUploadService
         return $id;
     }
 
+    /**
+     * Get the disk-relative path of a temporary upload.
+     *
+     * @param string $identifier
+     * @return string|null
+     */
     public function getTemporaryPath(string $identifier): ?string
     {
         $meta = $this->readMeta($identifier);
@@ -51,6 +64,12 @@ final class FileUploadService
         return is_array($meta) ? ($meta['path'] ?? null) : null;
     }
 
+    /**
+     * Get the absolute filesystem path of a temporary upload if the file exists.
+     *
+     * @param string $identifier
+     * @return string|null
+     */
     public function getTemporaryAbsolutePath(string $identifier): ?string
     {
         $meta = $this->readMeta($identifier);
@@ -63,6 +82,12 @@ final class FileUploadService
         return is_file($full) ? $full : null;
     }
 
+    /**
+     * Get the original client filename of a temporary upload.
+     *
+     * @param string $identifier
+     * @return string|null
+     */
     public function getTemporaryFileOriginalName(string $identifier): ?string
     {
         $meta = $this->readMeta($identifier);
@@ -70,6 +95,15 @@ final class FileUploadService
         return is_array($meta) ? ($meta['original'] ?? null) : null;
     }
 
+    /**
+     * Move a temporary upload to a permanent destination and return the stored relative path.
+     *
+     * @param string $identifier
+     * @param string $destinationPath
+     * @param string|null $disk
+     * @param bool $useOriginalName
+     * @return string|null
+     */
     public function moveToPermanent(string $identifier, string $destinationPath, ?string $disk = null, bool $useOriginalName = false): ?string
     {
         $meta = $this->readMeta($identifier);
@@ -108,6 +142,12 @@ final class FileUploadService
         return $destinationPath;
     }
 
+    /**
+     * Delete a temporary upload and its metadata.
+     *
+     * @param string $identifier
+     * @return bool
+     */
     public function deleteTemporary(string $identifier): bool
     {
         $full = $this->getTemporaryAbsolutePath($identifier);
@@ -119,6 +159,11 @@ final class FileUploadService
         return true;
     }
 
+    /**
+     * Delete temporary uploads older than the configured cleanup window and return the count removed.
+     *
+     * @return int
+     */
     public function cleanupOldFiles(): int
     {
         $hours = (int) Config::get('ripple.file_upload.cleanup_after_hours', 24);
@@ -142,6 +187,11 @@ final class FileUploadService
         return $deleted;
     }
 
+    /**
+     * Get the configured upload disk name.
+     *
+     * @return string
+     */
     private function diskName(): string
     {
         return (string) Config::get('ripple.file_upload.disk', 'local');
@@ -149,6 +199,9 @@ final class FileUploadService
 
     /**
      * Resolve filesystem root for a disk (filesystem.disks.{name}.root).
+     *
+     * @param string|null $disk
+     * @return string
      */
     private function diskRoot(?string $disk = null): string
     {
@@ -169,6 +222,13 @@ final class FileUploadService
         return function_exists('storage_path') ? storage_path('app') : sys_get_temp_dir();
     }
 
+    /**
+     * Resolve a disk-relative path to an absolute filesystem path.
+     *
+     * @param string $relative
+     * @param string|null $disk
+     * @return string
+     */
     private function absolutePath(string $relative, ?string $disk = null): string
     {
         $relative = ltrim(str_replace('\\', '/', $relative), '/');
@@ -177,7 +237,11 @@ final class FileUploadService
     }
 
     /**
+     * Write the metadata JSON file for a temporary upload.
+     *
+     * @param string $id
      * @param array<string, mixed> $meta
+     * @return void
      */
     private function writeMeta(string $id, array $meta): void
     {
@@ -189,6 +253,9 @@ final class FileUploadService
     }
 
     /**
+     * Read the metadata for a temporary upload, or null when missing or invalid.
+     *
+     * @param string $id
      * @return array<string, mixed>|null
      */
     private function readMeta(string $id): ?array
@@ -206,6 +273,12 @@ final class FileUploadService
         return is_array($data) ? $data : null;
     }
 
+    /**
+     * Delete the metadata file for a temporary upload.
+     *
+     * @param string $id
+     * @return void
+     */
     private function deleteMeta(string $id): void
     {
         if (! $this->isSafeMetaId($id)) {
@@ -218,12 +291,23 @@ final class FileUploadService
         }
     }
 
+    /**
+     * Get the absolute directory where upload metadata is stored.
+     *
+     * @return string
+     */
     private function metaDir(): string
     {
         // Meta stays on the configured upload disk under ripple/meta
         return $this->absolutePath('ripple/meta');
     }
 
+    /**
+     * Determine whether an identifier is a safe hexadecimal metadata id.
+     *
+     * @param string $id
+     * @return bool
+     */
     private function isSafeMetaId(string $id): bool
     {
         return $id !== ''
@@ -233,6 +317,12 @@ final class FileUploadService
             && ctype_xdigit($id);
     }
 
+    /**
+     * Get a safe basename from a client filename, or null if it looks like path traversal.
+     *
+     * @param string $name
+     * @return string|null
+     */
     private function safeBasename(string $name): ?string
     {
         $normalized = str_replace('\\', '/', $name);

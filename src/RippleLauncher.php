@@ -14,13 +14,28 @@ use Phaseolies\Launchers\PackageServiceLauncher;
 
 class RippleLauncher extends PackageServiceLauncher
 {
+    /**
+     * The package name used for config, views and publishing.
+     *
+     * @var string
+     */
     protected string $packageName = 'ripple';
 
+    /**
+     * Configure the package name.
+     *
+     * @return void
+     */
     protected function configurePackage(): void
     {
         $this->packageName = 'ripple';
     }
 
+    /**
+     * Register the Ripple config, router, view controller and core services.
+     *
+     * @return void
+     */
     public function register(): void
     {
         parent::register();
@@ -45,6 +60,11 @@ class RippleLauncher extends PackageServiceLauncher
         });
     }
 
+    /**
+     * Boot Ripple routes, views, publishable assets and console commands.
+     *
+     * @return void
+     */
     public function launch(): void
     {
         ViewCache::flush();
@@ -69,11 +89,21 @@ class RippleLauncher extends PackageServiceLauncher
         $this->ensureClientAsset();
     }
 
+    /**
+     * Get the path to the bundled client script.
+     *
+     * @return string
+     */
     private function clientDistPath(): string
     {
         return __DIR__ . '/../resources/dist/ripple.min.js';
     }
 
+    /**
+     * Copy the client script to the public directory when missing or outdated.
+     *
+     * @return void
+     */
     private function ensureClientAsset(): void
     {
         $source = $this->clientDistPath();

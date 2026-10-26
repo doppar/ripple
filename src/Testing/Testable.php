@@ -12,29 +12,69 @@ final class Testable
 {
     use MakesAssertions;
 
-    /** @var class-string<Component> */
+    /**
+     * The class name of the component under test.
+     *
+     * @var class-string<Component>
+     */
     private string $name;
 
+    /**
+     * The component instance ID.
+     *
+     * @var string
+     */
     private string $id = '';
 
-    /** @var array<string, mixed> */
+    /**
+     * The current serialized component state.
+     *
+     * @var array<string, mixed>
+     */
     private array $state = [];
 
+    /**
+     * The fingerprint of the current state.
+     *
+     * @var string
+     */
     private string $fingerprint = '';
 
+    /**
+     * The signature of the current state.
+     *
+     * @var string
+     */
     private string $signature = '';
 
+    /**
+     * The most recently rendered component HTML.
+     *
+     * @var string
+     */
     private string $html = '';
 
-    /** @var array<string, list<string>> */
+    /**
+     * The current validation errors keyed by field.
+     *
+     * @var array<string, list<string>>
+     */
     private array $errors = [];
 
-    /** @var array<string, mixed>|null */
+    /**
+     * The last mount or update response payload.
+     *
+     * @var array<string, mixed>|null
+     */
     private ?array $lastResponse = null;
 
     /**
+     * Create a testable instance and mount the given component.
+     *
+     * @param ComponentManager $manager
      * @param class-string<Component> $component
      * @param array<string, mixed> $params
+     * @return self
      */
     public static function create(ComponentManager $manager, string $component, array $params = []): self
     {
@@ -44,13 +84,21 @@ final class Testable
         return $testable;
     }
 
+    /**
+     * Create a new testable instance.
+     *
+     * @param ComponentManager $manager
+     */
     private function __construct(private readonly ComponentManager $manager)
     {
     }
 
     /**
+     * Mount the component, resolving lazy components, and capture its initial state.
+     *
      * @param class-string<Component> $component
      * @param array<string, mixed> $params
+     * @return void
      */
     private function boot(string $component, array $params): void
     {
@@ -79,7 +127,10 @@ final class Testable
     }
 
     /**
+     * Absorb the result of loading a lazy component as the initial state.
+     *
      * @param array<string, mixed> $result
+     * @return void
      */
     private function absorbLazyBoot(array $result): void
     {
@@ -100,6 +151,13 @@ final class Testable
         ], $result);
     }
 
+    /**
+     * Call an invokable method on the component.
+     *
+     * @param string $method
+     * @param mixed ...$params
+     * @return self
+     */
     public function call(string $method, mixed ...$params): self
     {
         return $this->sendUpdate([
@@ -109,6 +167,13 @@ final class Testable
         ]);
     }
 
+    /**
+     * Set one or more component properties through an update request.
+     *
+     * @param string|array $name
+     * @param mixed $value
+     * @return self
+     */
     public function set(string|array $name, mixed $value = null): self
     {
         if (is_array($name)) {
@@ -127,18 +192,32 @@ final class Testable
     }
 
     /**
+     * Set multiple component properties at once.
+     *
      * @param array<string, mixed> $values
+     * @return self
      */
     public function fill(array $values): self
     {
         return $this->set($values);
     }
 
+    /**
+     * Toggle a boolean component property.
+     *
+     * @param string $name
+     * @return self
+     */
     public function toggle(string $name): self
     {
         return $this->set($name, ! $this->get($name));
     }
 
+    /**
+     * Re-render the component HTML from the current state.
+     *
+     * @return self
+     */
     public function refresh(): self
     {
         $this->html = $this->manager->html($this->instance());
@@ -146,16 +225,32 @@ final class Testable
         return $this;
     }
 
+    /**
+     * Get a component property value using dot notation.
+     *
+     * @param string $key
+     * @return mixed
+     */
     public function get(string $key): mixed
     {
         return $this->valueAt($this->instance(), $key);
     }
 
+    /**
+     * Get the most recently rendered component HTML.
+     *
+     * @return string
+     */
     public function html(): string
     {
         return $this->html;
     }
 
+    /**
+     * Hydrate a fresh component instance from the current state.
+     *
+     * @return Component
+     */
     public function instance(): Component
     {
         $instance = $this->manager->hydrateForTest($this->name, $this->state, $this->id);
@@ -166,6 +261,12 @@ final class Testable
         return $instance;
     }
 
+    /**
+     * Get the component's view data, or a single key from it.
+     *
+     * @param string|null $key
+     * @return mixed
+     */
     public function viewData(?string $key = null): mixed
     {
         $data = $this->instance()->viewData();
@@ -177,6 +278,8 @@ final class Testable
     }
 
     /**
+     * Get the current validation errors.
+     *
      * @return array<string, list<string>>
      */
     public function errors(): array
@@ -185,6 +288,8 @@ final class Testable
     }
 
     /**
+     * Get the last response payload.
+     *
      * @return array<string, mixed>|null
      */
     public function effects(): ?array
@@ -192,13 +297,21 @@ final class Testable
         return $this->lastResponse;
     }
 
+    /**
+     * Get the component instance ID.
+     *
+     * @return string
+     */
     public function id(): string
     {
         return $this->id;
     }
 
     /**
+     * Send an update request with the current state and absorb the response.
+     *
      * @param array<string, mixed> $extra
+     * @return self
      */
     private function sendUpdate(array $extra): self
     {
@@ -221,7 +334,10 @@ final class Testable
     }
 
     /**
+     * Sync state, signature, errors and HTML from an update response.
+     *
      * @param array<string, mixed> $response
+     * @return void
      */
     private function absorbResponse(array $response): void
     {
@@ -264,6 +380,14 @@ final class Testable
         $this->html = $this->manager->html($this->instance());
     }
 
+    /**
+     * Extract the ID, signature and state from mounted component HTML.
+     *
+     * @param string $wrapped
+     * @return void
+     *
+     * @throws \RuntimeException
+     */
     private function applyMountHtml(string $wrapped): void
     {
         $this->id = $this->attr($wrapped, 'data-ripple-id');
@@ -286,6 +410,13 @@ final class Testable
         $this->html = $this->manager->html($this->instance());
     }
 
+    /**
+     * Extract and decode an attribute value from the given HTML.
+     *
+     * @param string $html
+     * @param string $name
+     * @return string
+     */
     private function attr(string $html, string $name): string
     {
         $pattern = '/' . preg_quote($name, '/') . '="([^"]*)"/';
@@ -296,6 +427,13 @@ final class Testable
         return html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 
+    /**
+     * Resolve a dot-notation key against an object or array.
+     *
+     * @param object|array $target
+     * @param string $key
+     * @return mixed
+     */
     private function valueAt(object|array $target, string $key): mixed
     {
         if ($key === '') {

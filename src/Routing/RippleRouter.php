@@ -9,15 +9,22 @@ use Phaseolies\Support\Router;
 
 final class RippleRouter extends Router
 {
+    /**
+     * Create a new Ripple router instance.
+     *
+     * @param GatewayInterface $gateway
+     */
     public function __construct(GatewayInterface $gateway)
     {
         parent::__construct($gateway);
     }
 
     /**
-     * Register a full-page Ripple component route (Livewire-style Route::livewire).
+     * Register a full-page Ripple component route.
      *
+     * @param string $uri
      * @param class-string<\Doppar\Ripple\Component>|string $component
+     * @return self
      */
     public function ripple(string $uri, string $component): self
     {

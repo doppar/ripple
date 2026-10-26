@@ -18,12 +18,35 @@ use ReflectionClass;
 
 final class ComponentManager
 {
-    /** @var array<string, class-string<Component>> */
+    /**
+     * Registered component aliases mapped to their classes.
+     *
+     * @var array<string, class-string<Component>>
+     */
     private array $aliases = [];
 
+    /**
+     * The hydrator used to mount and restore components.
+     *
+     * @var ComponentHydrator
+     */
     private ComponentHydrator $hydrator;
+
+    /**
+     * The signer used to fingerprint and sign component state.
+     *
+     * @var StateSigner
+     */
     private StateSigner $signer;
 
+    /**
+     * Create a new component manager instance.
+     *
+     * @param HtmlParser $parser
+     * @param DiffEngine $diff
+     * @param ?StateSigner $signer
+     * @param ?ComponentHydrator $hydrator
+     */
     public function __construct(
         private readonly HtmlParser $parser = new HtmlParser(),
         private readonly DiffEngine $diff = new DiffEngine(),
@@ -35,7 +58,11 @@ final class ComponentManager
     }
 
     /**
+     * Register an alias for a component class.
+     *
+     * @param string $alias
      * @param class-string<Component> $class
+     * @return void
      */
     public function register(string $alias, string $class): void
     {
@@ -43,8 +70,11 @@ final class ComponentManager
     }
 
     /**
+     * Mount a component and return its HTML wrapped with signed state.
+     *
      * @param class-string<Component>|string $component
      * @param array<string, mixed> $params
+     * @return string
      */
     public function mount(string $component, array $params = []): string
     {
@@ -75,6 +105,7 @@ final class ComponentManager
      *
      * @param class-string<Component>|string $component
      * @param array<string, mixed> $params
+     * @return Response
      */
     public function renderPage(string $component, array $params = []): Response
     {
@@ -91,6 +122,8 @@ final class ComponentManager
     }
 
     /**
+     * Apply a client property update or action to a component and build the response payload.
+     *
      * @param array{
      *   i?: string, n?: string, a?: ?string, g?: array, s?: array,
      *   t?: string, p?: string, v?: mixed, f?: string, x?: string, er?: array, ev?: string, m?: array
@@ -199,7 +232,11 @@ final class ComponentManager
     }
 
     /**
+     * Mount a lazy component and return its HTML with signed state.
+     *
+     * @param string $component
      * @param array<string, mixed> $params
+     * @param ?string $id
      * @return array<string, mixed>
      */
     public function loadLazy(string $component, array $params = [], ?string $id = null): array
@@ -224,8 +261,11 @@ final class ComponentManager
     }
 
     /**
+     * Create a mounted component instance without rendering it.
+     *
      * @param class-string<Component>|string $component
      * @param array<string, mixed> $params
+     * @return Component
      */
     public function make(string $component, array $params = []): Component
     {
@@ -235,8 +275,11 @@ final class ComponentManager
     }
 
     /**
+     * Create a testable wrapper around a component.
+     *
      * @param class-string<Component>|string $component
      * @param array<string, mixed> $params
+     * @return Testable
      */
     public function test(string $component, array $params = []): Testable
     {
@@ -245,6 +288,9 @@ final class ComponentManager
 
     /**
      * Render component HTML without the data-ripple wrapper (for testing / previews).
+     *
+     * @param Component $instance
+     * @return string
      */
     public function html(Component $instance): string
     {
@@ -252,14 +298,23 @@ final class ComponentManager
     }
 
     /**
+     * Hydrate a component from the given state for testing, trusting locked properties.
+     *
      * @param class-string<Component>|string $component
      * @param array<string, mixed> $state
+     * @param string $id
+     * @return Component
      */
     public function hydrateForTest(string $component, array $state, string $id): Component
     {
         return $this->hydrator->hydrate($this->resolveClass($component), $state, $id, allowLocked: true);
     }
 
+    /**
+     * Build the Ripple meta tags and client script tag.
+     *
+     * @return string
+     */
     public function scripts(): string
     {
         $src = '/vendor/ripple/ripple.min.js';
@@ -286,6 +341,11 @@ final class ComponentManager
             . '<script src="' . $src . '" defer></script>';
     }
 
+    /**
+     * Get the state signer.
+     *
+     * @return StateSigner
+     */
     public function signer(): StateSigner
     {
         return $this->signer;
@@ -295,7 +355,10 @@ final class ComponentManager
      * Apply pending DOM-bound values flushed by the client before an action.
      * Skips locked/hidden/computed props the same way updateProperty does.
      *
+     * @param Component $instance
      * @param array<string, mixed>|mixed $models
+     * @param bool $resetValidation
+     * @return bool
      */
     private function syncClientModels(Component $instance, mixed $models, bool $resetValidation = true): bool
     {
@@ -319,7 +382,10 @@ final class ComponentManager
     }
 
     /**
+     * Resolve the layout view for a page component.
+     *
      * @param class-string<Component> $class
+     * @return string
      */
     private function resolveLayout(string $class): string
     {
@@ -335,7 +401,10 @@ final class ComponentManager
     }
 
     /**
+     * Resolve the page title for a component.
+     *
      * @param class-string<Component> $class
+     * @return string
      */
     private function resolveTitle(string $class): string
     {
@@ -353,6 +422,9 @@ final class ComponentManager
     }
 
     /**
+     * Resolve a component alias or name to its class.
+     *
+     * @param string $component
      * @return class-string<Component>
      */
     private function resolveClass(string $component): string
@@ -379,6 +451,9 @@ final class ComponentManager
     }
 
     /**
+     * Build the candidate class names for a component name.
+     *
+     * @param string $component
      * @return list<string>
      */
     private function candidateClassNames(string $component): array
@@ -389,14 +464,24 @@ final class ComponentManager
         return $path === $studly ? [$path] : [$path, $studly];
     }
 
+    /**
+     * Convert a dashed or underscored value to StudlyCase.
+     *
+     * @param string $value
+     * @return string
+     */
     private function studly(string $value): string
     {
         return str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $value)));
     }
 
     /**
+     * Render the placeholder markup for a lazy component.
+     *
      * @param class-string<Component> $class
      * @param array<string, mixed> $params
+     * @param Lazy $lazy
+     * @return string
      */
     private function mountLazy(string $class, array $params, Lazy $lazy): string
     {
@@ -413,6 +498,12 @@ final class ComponentManager
         );
     }
 
+    /**
+     * Render a component to its raw HTML.
+     *
+     * @param Component $instance
+     * @return string
+     */
     private function renderHtml(Component $instance): string
     {
         return Component::whileRendering($instance, function () use ($instance) {
@@ -437,6 +528,13 @@ final class ComponentManager
         });
     }
 
+    /**
+     * Extract the rendered HTML from a component's view response.
+     *
+     * @param Component $instance
+     * @param Response $response
+     * @return string
+     */
     private function htmlFromViewResponse(Component $instance, \Phaseolies\Http\Response $response): string
     {
         // Body already includes public props when rendered under whileRendering()
@@ -457,8 +555,16 @@ final class ComponentManager
     }
 
     /**
+     * Wrap rendered component HTML in its data-ripple root element.
+     *
+     * @param string $html
+     * @param string $id
+     * @param string $name
      * @param array<string, mixed> $state
+     * @param string $fingerprint
+     * @param string $signature
      * @param array<string, list<string>> $eventListeners
+     * @return string
      */
     private function wrap(
         string $html,
@@ -482,7 +588,10 @@ final class ComponentManager
     }
 
     /**
+     * Verify the payload's state signature when the configured mode requires it.
+     *
      * @param array<string, mixed> $state
+     * @param string $id
      * @param array<string, mixed> $payload
      * @return bool True when the payload signature was verified (Locked props may be trusted).
      */
@@ -509,6 +618,11 @@ final class ComponentManager
     }
 
     /**
+     * Build the response payload for a successful update.
+     *
+     * @param Component $instance
+     * @param string $id
+     * @param string $name
      * @param list<array<string, mixed>> $deltas
      * @param array<string, mixed> $state
      * @param array<string, mixed> $extra

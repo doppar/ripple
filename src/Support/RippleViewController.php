@@ -11,6 +11,14 @@ use Phaseolies\Http\Controllers\Controller;
  */
 final class RippleViewController extends Controller
 {
+    /**
+     * Render a view, merging the current component's public props and isolating component renders.
+     *
+     * @param string $name
+     * @param array<string, mixed> $data
+     * @param bool $returnOnly
+     * @return string
+     */
     public function render($name, array $data = [], $returnOnly = false)
     {
         if ($component = Component::current()) {

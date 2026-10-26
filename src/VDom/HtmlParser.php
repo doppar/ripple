@@ -11,6 +11,12 @@ use Doppar\Ripple\Exceptions\MultipleRootsException;
  */
 final class HtmlParser
 {
+    /**
+     * Parse an HTML fragment into a single virtual DOM root node.
+     *
+     * @param string $html
+     * @return Node
+     */
     public function parse(string $html): Node
     {
         $html = trim($html);
@@ -57,6 +63,12 @@ final class HtmlParser
         return $children[0] ?? new Node('#text', text: '');
     }
 
+    /**
+     * Convert a DOM node into a virtual DOM node, or null when it should be skipped.
+     *
+     * @param \DOMNode $dom
+     * @return ?Node
+     */
     private function fromDom(\DOMNode $dom): ?Node
     {
         if ($dom instanceof \DOMText) {
@@ -98,6 +110,8 @@ final class HtmlParser
     }
 
     /**
+     * Wrap bare table rows in an implicit tbody node.
+     *
      * Browsers wrap bare <tr> children of a <table> in an implicit <tbody>; libxml does not.
      * Mirror the browser tree so diff paths line up with the live DOM. Whitespace before the
      * first <tr> stays on the table, everything after it (including trailing whitespace) goes
