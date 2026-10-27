@@ -12,8 +12,11 @@ use Phaseolies\Http\Controllers\Controller;
 final class IsolatedViewEngine extends Controller
 {
     /**
+     * Render a view, extracting data with overwrite so component props are not shadowed.
+     *
      * @param string $name
      * @param array<string, mixed> $data
+     * @return string
      */
     public function fetch($name, array $data = []): string
     {

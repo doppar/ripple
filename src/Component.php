@@ -18,37 +18,86 @@ use ReflectionProperty;
 
 abstract class Component
 {
+    /**
+     * The unique identifier of this component instance.
+     *
+     * @var string
+     */
     protected string $id = '';
 
+    /**
+     * The component currently being rendered, if any.
+     *
+     * @var self|null
+     */
     private static ?self $rendering = null;
 
-    /** @var list<string> */
+    /**
+     * Names of public properties synced with the client.
+     *
+     * @var list<string>
+     */
     protected array $tracked = [];
 
-    /** @var list<string> */
+    /**
+     * Names of #[Locked] properties the client may not update.
+     *
+     * @var list<string>
+     */
     protected array $locked = [];
 
-    /** @var list<string> */
+    /**
+     * Names of #[Computed] properties.
+     *
+     * @var list<string>
+     */
     protected array $computed = [];
 
-    /** @var list<string> */
+    /**
+     * Names of properties excluded from the serialized state.
+     *
+     * @var list<string>
+     */
     protected array $hidden = [];
 
-    /** @var array<string, array{as: string, history: bool, keep: bool}> */
+    /**
+     * The #[QueryString] property configuration keyed by property name.
+     *
+     * @var array<string, array{as: string, history: bool, keep: bool}>
+     */
     protected array $urlProperties = [];
 
-    /** @var array<string, list<string>> */
+    /**
+     * The #[On] listener method names keyed by event name.
+     *
+     * @var array<string, list<string>>
+     */
     protected array $eventListeners = [];
 
-    /** @var array<string, list<string>> */
+    /**
+     * The validation error messages keyed by field name.
+     *
+     * @var array<string, list<string>>
+     */
     protected array $errorBag = [];
 
-    /** @var list<array{name: string, params: list<mixed>, to: ?list<string>, self: bool}> */
+    /**
+     * The component events dispatched during this request.
+     *
+     * @var list<array{name: string, params: list<mixed>, to: ?list<string>, self: bool}>
+     */
     protected array $dispatchedEvents = [];
 
-    /** @var list<array{name: string, data: mixed}> */
+    /**
+     * The browser events dispatched during this request.
+     *
+     * @var list<array{name: string, data: mixed}>
+     */
     protected array $browserEvents = [];
 
+    /**
+     * Create a new component instance and register its properties and listeners.
+     */
     public function __construct()
     {
         $this->id = $this->id !== '' ? $this->id : bin2hex(random_bytes(8));
@@ -56,23 +105,42 @@ abstract class Component
         $this->registerEventListeners();
     }
 
+    /**
+     * Get the component instance identifier.
+     *
+     * @return string
+     */
     public function getId(): string
     {
         return $this->id;
     }
 
+    /**
+     * Set the component instance identifier.
+     *
+     * @param string $id
+     * @return void
+     */
     public function setId(string $id): void
     {
         $this->id = $id;
     }
 
+    /**
+     * Get the component currently being rendered, if any.
+     *
+     * @return self|null
+     */
     public static function current(): ?self
     {
         return self::$rendering;
     }
 
     /**
+     * Run the callback with the given component marked as the one being rendered.
+     *
      * @template T
+     * @param self $component
      * @param callable(): T $callback
      * @return T
      */
@@ -88,32 +156,62 @@ abstract class Component
         }
     }
 
+    /**
+     * Initialize the component when it is first mounted.
+     *
+     * @return void
+     */
     public function mount(): void
     {
         //
     }
 
+    /**
+     * Hook that runs after the component state is hydrated.
+     *
+     * @return void
+     */
     public function hydrateLifecycle(): void
     {
         //
     }
 
+    /**
+     * Hook that runs before a property is updated from the client.
+     *
+     * @param string $property
+     * @param mixed $value
+     * @return void
+     */
     public function updating(string $property, mixed $value): void
     {
         //
     }
 
+    /**
+     * Hook that runs after a property is updated from the client.
+     *
+     * @param string $property
+     * @return void
+     */
     public function updated(string $property): void
     {
         //
     }
 
+    /**
+     * Hook that runs before the component is serialized for the response.
+     *
+     * @return void
+     */
     public function dehydrate(): void
     {
         //
     }
 
     /**
+     * Render the component.
+     *
      * Return inline HTML, an Odo view name, or a Response from view().
      *
      * @return string|\Phaseolies\Http\Response
@@ -121,6 +219,8 @@ abstract class Component
     abstract public function render(): mixed;
 
     /**
+     * Get the data passed to the component's Odo view.
+     *
      * Public properties (and error bag) available to Odo views.
      *
      * @return array<string, mixed>
@@ -146,6 +246,8 @@ abstract class Component
     }
 
     /**
+     * Get the tracked public property values to serialize to the client.
+     *
      * @return array<string, mixed>
      */
     public function getState(): array
@@ -169,8 +271,11 @@ abstract class Component
     }
 
     /**
+     * Restore the component properties from a client state snapshot.
+     *
      * @param array<string, mixed> $state
      * @param bool $allowLocked Apply #[Locked] props from $state (only after HMAC verify).
+     * @return void
      */
     public function hydrate(array $state, bool $allowLocked = false): void
     {
@@ -194,6 +299,13 @@ abstract class Component
         $this->hydrateLifecycle();
     }
 
+    /**
+     * Update a property from the client and revalidate the affected fields.
+     *
+     * @param string $property
+     * @param mixed $value
+     * @return void
+     */
     public function updateProperty(string $property, mixed $value): void
     {
         $this->syncProperty($property, $value);
@@ -206,7 +318,10 @@ abstract class Component
     /**
      * Apply a client value without running validateOnly (used when flushing a form before an action).
      *
+     * @param string $property
+     * @param mixed $value
      * @param bool $resetValidation Property updates keep existing errors. Actions clear the field.
+     * @return void
      */
     public function syncProperty(string $property, mixed $value, bool $resetValidation = true): void
     {
@@ -232,8 +347,14 @@ abstract class Component
     }
 
     /**
+     * Coerce an incoming client value to the property's declared scalar type.
+     *
      * Wire payloads arrive as JSON/strings; typed public props need coercion
      * (e.g. cleared number inputs send "").
+     *
+     * @param ReflectionProperty $ref
+     * @param mixed $value
+     * @return mixed
      */
     private function castIncoming(ReflectionProperty $ref, mixed $value): mixed
     {
@@ -269,9 +390,12 @@ abstract class Component
     }
 
     /**
+     * Call an invokable action or event listener method on the component.
+     *
      * @param string|null $action
      * @param list<mixed> $args
      * @param string|null $event Event being delivered to a #[On] listener, if any
+     * @return mixed
      */
     public function callAction(?string $action, array $args = [], ?string $event = null): mixed
     {
@@ -299,13 +423,24 @@ abstract class Component
         return $this->{$action}(...$args);
     }
 
+    /**
+     * Determine if the method is registered as a listener for the event.
+     *
+     * @param string|null $event
+     * @param string $method
+     * @return bool
+     */
     private function listensTo(?string $event, string $method): bool
     {
         return $event !== null && in_array($method, $this->eventListeners[$event] ?? [], true);
     }
 
     /**
+     * Invoke every listener registered for the given event.
+     *
+     * @param string $eventName
      * @param list<mixed> $params
+     * @return void
      */
     public function handleEvent(string $eventName, array $params = []): void
     {
@@ -317,6 +452,8 @@ abstract class Component
     }
 
     /**
+     * Get the registered event listeners keyed by event name.
+     *
      * @return array<string, list<string>>
      */
     public function getEventListeners(): array
@@ -325,6 +462,8 @@ abstract class Component
     }
 
     /**
+     * Get the #[QueryString] property configuration.
+     *
      * @return array<string, array{as: string, history: bool, keep: bool}>
      */
     public function getUrlProperties(): array
@@ -334,6 +473,8 @@ abstract class Component
 
     /**
      * Pull #[QueryString] props from the current request so a refresh keeps page/filters.
+     *
+     * @return void
      */
     public function hydrateFromQueryString(): void
     {
@@ -367,6 +508,8 @@ abstract class Component
     }
 
     /**
+     * Get the query string values to write to the browser URL.
+     *
      * @return array<string, mixed|null>
      */
     public function getQueryString(): array
@@ -405,6 +548,8 @@ abstract class Component
     }
 
     /**
+     * Get the validation rules for the component state.
+     *
      * @return array<string, string|list<string>|Bind>
      */
     protected function rules(): array
@@ -413,6 +558,8 @@ abstract class Component
     }
 
     /**
+     * Get the custom validation messages keyed by "field.rule".
+     *
      * @return array<string, string>
      */
     protected function messages(): array
@@ -446,6 +593,8 @@ abstract class Component
     }
 
     /**
+     * Normalize array rule lists into pipe-delimited rule strings.
+     *
      * @param array<string, string|list<string>|Bind> $rules
      * @return array<string, string|Bind>
      */
@@ -467,6 +616,8 @@ abstract class Component
     }
 
     /**
+     * Run the rules against the state and collect error messages by field.
+     *
      * @param array<string, mixed> $state
      * @param array<string, string|Bind> $rules
      * @return array<string, list<string>>
@@ -517,6 +668,12 @@ abstract class Component
         return $errors;
     }
 
+    /**
+     * Revalidate the given field and any fields whose rules depend on it.
+     *
+     * @param string $field
+     * @return void
+     */
     protected function validateOnly(string $field): void
     {
         $rules = $this->rules();
@@ -542,8 +699,11 @@ abstract class Component
     }
 
     /**
+     * Get the fields to revalidate when the given field changes.
+     *
      * The changed field, plus any other field whose rule reads it.
      *
+     * @param string $field
      * @return list<string>
      */
     private function fieldsToRevalidate(string $field): array
@@ -569,6 +729,14 @@ abstract class Component
         return $fields;
     }
 
+    /**
+     * Determine if a rule string on one field references the changed field.
+     *
+     * @param string $spec
+     * @param string $owner
+     * @param string $changed
+     * @return bool
+     */
     private function ruleReadsField(string $spec, string $owner, string $changed): bool
     {
         foreach (explode('|', $spec) as $rule) {
@@ -593,6 +761,12 @@ abstract class Component
         return false;
     }
 
+    /**
+     * Clear validation errors for one field, or all fields when none is given.
+     *
+     * @param string|null $field
+     * @return void
+     */
     protected function resetValidation(?string $field = null): void
     {
         if ($field === null) {
@@ -603,12 +777,21 @@ abstract class Component
         unset($this->errorBag[$field]);
     }
 
+    /**
+     * Add a validation error message for the given field.
+     *
+     * @param string $field
+     * @param string $message
+     * @return void
+     */
     protected function addError(string $field, string $message): void
     {
         $this->errorBag[$field][] = $message;
     }
 
     /**
+     * Get the validation errors keyed by field name.
+     *
      * @return array<string, list<string>>
      */
     public function getErrorBag(): array
@@ -617,20 +800,34 @@ abstract class Component
     }
 
     /**
+     * Replace the validation errors.
+     *
      * @param array<string, list<string>> $errors
+     * @return void
      */
     public function setErrorBag(array $errors): void
     {
         $this->errorBag = $errors;
     }
 
+    /**
+     * Redirect the browser to the given URL.
+     *
+     * @param string $url
+     * @param bool $spa
+     * @return never
+     */
     protected function redirect(string $url, bool $spa = true): never
     {
         throw new RedirectException(['u' => $url, 'spa' => $spa]);
     }
 
     /**
-     * @param list<mixed> $params
+     * Dispatch an event to every listening component.
+     *
+     * @param string $event
+     * @param mixed ...$params
+     * @return self
      */
     protected function dispatch(string $event, mixed ...$params): self
     {
@@ -645,8 +842,12 @@ abstract class Component
     }
 
     /**
+     * Dispatch an event to the given components only.
+     *
      * @param string|list<string> $components
-     * @param list<mixed> $params
+     * @param string $event
+     * @param mixed ...$params
+     * @return self
      */
     protected function dispatchTo(string|array $components, string $event, mixed ...$params): self
     {
@@ -661,7 +862,11 @@ abstract class Component
     }
 
     /**
-     * @param list<mixed> $params
+     * Dispatch an event to this component only.
+     *
+     * @param string $event
+     * @param mixed ...$params
+     * @return self
      */
     protected function dispatchSelf(string $event, mixed ...$params): self
     {
@@ -675,6 +880,13 @@ abstract class Component
         return $this;
     }
 
+    /**
+     * Dispatch a DOM event in the browser.
+     *
+     * @param string $event
+     * @param mixed $data
+     * @return self
+     */
     protected function dispatchBrowserEvent(string $event, mixed $data = null): self
     {
         $this->browserEvents[] = ['name' => $event, 'data' => $data];
@@ -683,6 +895,8 @@ abstract class Component
     }
 
     /**
+     * Get the component events dispatched during this request.
+     *
      * @return list<array{name: string, params: list<mixed>, to: ?list<string>, self: bool}>
      */
     public function getDispatchedEvents(): array
@@ -691,6 +905,8 @@ abstract class Component
     }
 
     /**
+     * Get the browser events dispatched during this request.
+     *
      * @return list<array{name: string, data: mixed}>
      */
     public function getBrowserEvents(): array
@@ -698,17 +914,32 @@ abstract class Component
         return $this->browserEvents;
     }
 
+    /**
+     * Clear the dispatched component and browser events.
+     *
+     * @return void
+     */
     public function clearDispatchedEvents(): void
     {
         $this->dispatchedEvents = [];
         $this->browserEvents = [];
     }
 
+    /**
+     * Run the dehydrate hook before the component is sent in the response.
+     *
+     * @return void
+     */
     public function dehydrateForResponse(): void
     {
         $this->dehydrate();
     }
 
+    /**
+     * Classify public properties as tracked, locked, computed or query-string bound.
+     *
+     * @return void
+     */
     private function initializeProperties(): void
     {
         $ref = new ReflectionClass($this);
@@ -743,6 +974,11 @@ abstract class Component
         }
     }
 
+    /**
+     * Register public methods carrying #[On] attributes as event listeners.
+     *
+     * @return void
+     */
     private function registerEventListeners(): void
     {
         $ref = new ReflectionClass($this);

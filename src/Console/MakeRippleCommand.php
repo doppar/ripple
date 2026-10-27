@@ -6,10 +6,25 @@ use Phaseolies\Console\Schedule\Command;
 
 class MakeRippleCommand extends Command
 {
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
     protected $name = 'make:ripple {name} {--inline : Keep markup in the PHP class instead of an Odo view}';
 
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
     protected $description = 'Create a new Ripple component (class + Odo view by default)';
 
+    /**
+     * Generate a Ripple component class and, unless --inline is given, its Odo view.
+     *
+     * @return int
+     */
     public function handle(): int
     {
         return $this->executeWithTiming(function () {
@@ -57,7 +72,11 @@ class MakeRippleCommand extends Command
     }
 
     /**
+     * Build the dot-notation view name for the component.
+     *
      * @param list<string> $parts
+     * @param string $className
+     * @return string
      */
     private function viewName(array $parts, string $className): string
     {
@@ -67,7 +86,11 @@ class MakeRippleCommand extends Command
     }
 
     /**
+     * Build the absolute path of the component's Odo view file.
+     *
      * @param list<string> $parts
+     * @param string $className
+     * @return string
      */
     private function viewPath(array $parts, string $className): string
     {
@@ -77,6 +100,12 @@ class MakeRippleCommand extends Command
         return base_path($relative);
     }
 
+    /**
+     * Convert a StudlyCase value to kebab-case.
+     *
+     * @param string $value
+     * @return string
+     */
     private function toKebab(string $value): string
     {
         $kebab = preg_replace('/(?<!^)[A-Z]/', '-$0', $value) ?? $value;
@@ -84,6 +113,15 @@ class MakeRippleCommand extends Command
         return strtolower($kebab);
     }
 
+    /**
+     * Build the PHP source for the component class, inline or view-backed.
+     *
+     * @param string $namespace
+     * @param string $className
+     * @param bool $inline
+     * @param string $viewName
+     * @return string
+     */
     private function classStub(string $namespace, string $className, bool $inline, string $viewName): string
     {
         if ($inline) {
@@ -141,6 +179,12 @@ class {$className} extends Component
 PHP;
     }
 
+    /**
+     * Build the Odo template source for the component view.
+     *
+     * @param string $className
+     * @return string
+     */
     private function viewStub(string $className): string
     {
         return <<<ODO

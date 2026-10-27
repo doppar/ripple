@@ -5,6 +5,8 @@ namespace Doppar\Ripple\Exceptions;
 final class MultipleRootsException extends \RuntimeException
 {
     /**
+     * Create a new exception for a template with more than one root element.
+     *
      * @param list<string> $tags
      */
     public function __construct(array $tags)

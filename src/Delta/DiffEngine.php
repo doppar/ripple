@@ -9,9 +9,21 @@ use Doppar\Ripple\VDom\Node;
  */
 final class DiffEngine
 {
-    /** Largest LCS table (old * new children) worth building; bigger lists diff positionally. */
+    /**
+     * Largest LCS table (old * new children) worth building; bigger lists diff positionally.
+     *
+     * @var int
+     */
     private const LCS_CELL_LIMIT = 40000;
 
+    /**
+     * Diff two virtual DOM trees into a patch.
+     *
+     * @param ?Node $old
+     * @param ?Node $new
+     * @param string $path
+     * @return Patch
+     */
     public function diff(?Node $old, ?Node $new, string $path = ''): Patch
     {
         $patch = new Patch();
@@ -20,6 +32,15 @@ final class DiffEngine
         return $patch;
     }
 
+    /**
+     * Compare two nodes recursively and append the resulting operations to the patch.
+     *
+     * @param ?Node $old
+     * @param ?Node $new
+     * @param string $path
+     * @param Patch $patch
+     * @return void
+     */
     private function walk(?Node $old, ?Node $new, string $path, Patch $patch): void
     {
         if ($old === null && $new === null) {
@@ -87,7 +108,9 @@ final class DiffEngine
     }
 
     /**
-     * Diff two child lists. Children that survive on both sides (same tag, same key) are
+     * Diff two child lists and append the resulting operations to the patch.
+     *
+     * Children that survive on both sides (same tag, same key) are
      * aligned with a longest-common-subsequence match and diffed in place, so inserting or
      * removing one node in the middle does not make every following sibling look changed
      * (which would replace live nodes, including an input the user is typing in).
@@ -97,6 +120,9 @@ final class DiffEngine
      *
      * @param list<Node> $oldKids
      * @param list<Node> $newKids
+     * @param string $path
+     * @param Patch $patch
+     * @return void
      */
     private function walkChildren(array $oldKids, array $newKids, string $path, Patch $patch): void
     {
@@ -119,11 +145,20 @@ final class DiffEngine
     }
 
     /**
+     * Diff the unmatched children that lie between two anchors.
+     *
      * Old children [$oi, $ai) became new children [$nj, $aj). Pair them up positionally,
      * then remove the surplus old nodes or insert the surplus new ones.
      *
      * @param list<Node> $oldKids
      * @param list<Node> $newKids
+     * @param int $oi
+     * @param int $ai
+     * @param int $nj
+     * @param int $aj
+     * @param string $path
+     * @param Patch $patch
+     * @return void
      */
     private function walkGap(array $oldKids, array $newKids, int $oi, int $ai, int $nj, int $aj, string $path, Patch $patch): void
     {
@@ -145,6 +180,8 @@ final class DiffEngine
     }
 
     /**
+     * Find the matched child index pairs used as diff anchors.
+     *
      * Matched (oldIndex, newIndex) pairs, increasing on both sides. Common head and tail are
      * matched directly; the middle uses an LCS table, skipped when it would be too large
      * (the middle then falls back to positional pairing).
@@ -192,6 +229,8 @@ final class DiffEngine
     }
 
     /**
+     * Compute the longest common subsequence of two signature lists as index pairs.
+     *
      * @param list<string> $old
      * @param list<string> $new
      * @return list<array{int, int}>
@@ -229,7 +268,12 @@ final class DiffEngine
     }
 
     /**
+     * Build the matching signature of a node from its type and key.
+     *
      * Two children can be diffed in place when their signatures match.
+     *
+     * @param Node $node
+     * @return string
      */
     private function signature(Node $node): string
     {
@@ -240,12 +284,21 @@ final class DiffEngine
         return $node->key !== null ? $node->type . '#' . $node->key : $node->type;
     }
 
+    /**
+     * Append a child index to a dot-separated node path.
+     *
+     * @param string $path
+     * @param int $index
+     * @return string
+     */
     private function childPath(string $path, int $index): string
     {
         return $path === '' ? (string) $index : $path . '.' . $index;
     }
 
     /**
+     * Compute the attribute changes between two attribute sets.
+     *
      * @param array<string, mixed> $old
      * @param array<string, mixed> $new
      * @return array<string, mixed>
@@ -272,6 +325,12 @@ final class DiffEngine
         return $delta;
     }
 
+    /**
+     * Get the parent path of a dot-separated node path.
+     *
+     * @param string $path
+     * @return string
+     */
     private function parentPath(string $path): string
     {
         if ($path === '' || ! str_contains($path, '.')) {
@@ -281,6 +340,12 @@ final class DiffEngine
         return substr($path, 0, (int) strrpos($path, '.'));
     }
 
+    /**
+     * Get the child index from the last segment of a node path.
+     *
+     * @param string $path
+     * @return int
+     */
     private function indexOf(string $path): int
     {
         if ($path === '') {
@@ -292,6 +357,12 @@ final class DiffEngine
         return (int) end($parts);
     }
 
+    /**
+     * Render a virtual DOM node back to an HTML string.
+     *
+     * @param Node $node
+     * @return string
+     */
     public function toHtml(Node $node): string
     {
         if ($node->isText()) {

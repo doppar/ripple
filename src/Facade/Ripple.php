@@ -18,6 +18,11 @@ use Phaseolies\Facade\BaseFacade;
  */
 class Ripple extends BaseFacade
 {
+    /**
+     * Get the service container binding the facade resolves to.
+     *
+     * @return string
+     */
     protected static function getFacadeAccessor()
     {
         return ComponentManager::class;
