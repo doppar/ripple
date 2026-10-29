@@ -16,6 +16,7 @@ export function bindLazy(root) {
     i: root.getAttribute('data-ripple-id'),
     n: root.getAttribute('data-ripple-name'),
     g: params,
+    x: root.getAttribute('data-ripple-lx') || '',
   };
 
   const headers = {
@@ -41,6 +42,7 @@ export function bindLazy(root) {
       if (data.x) root.setAttribute('data-ripple-x', data.x);
       root.removeAttribute('data-ripple-lazy');
       root.removeAttribute('data-ripple-lazy-loading');
+      root.removeAttribute('data-ripple-lx');
     })
     .catch(console.error);
 }

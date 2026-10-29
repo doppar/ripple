@@ -232,6 +232,28 @@ final class ComponentManager
     }
 
     /**
+     * Load a lazy component from a browser request, verifying the placeholder signature first.
+     *
+     * Mount params may set #[Locked] properties, so they are only trusted when the
+     * signature proves they came from a placeholder this server rendered.
+     *
+     * @param string $component
+     * @param array<string, mixed> $params
+     * @param string $id
+     * @param string $signature
+     * @return array<string, mixed>
+     */
+    public function loadLazyRequest(string $component, array $params, string $id, string $signature): array
+    {
+        $class = $this->resolveClass($component);
+        if ($id === '' || ! $this->signer->verifyLazy($class, $params, $id, $signature)) {
+            throw new \RuntimeException('Invalid Ripple lazy signature.');
+        }
+
+        return $this->loadLazy($class, $params, $id);
+    }
+
+    /**
      * Mount a lazy component and return its HTML with signed state.
      *
      * @param string $component
@@ -242,6 +264,10 @@ final class ComponentManager
     public function loadLazy(string $component, array $params = [], ?string $id = null): array
     {
         $class = $this->resolveClass($component);
+        if (! $this->hydrator->isLazy($class)) {
+            throw new \InvalidArgumentException("Ripple component [{$class}] is not lazy.");
+        }
+
         $instance = $this->hydrator->mount($class, $params, $id);
         $state = $instance->getState();
         $cid = $instance->getId();
@@ -488,12 +514,14 @@ final class ComponentManager
         $id = bin2hex(random_bytes(8));
         $placeholder = $lazy->placeholder ?? '<div class="ripple-lazy-placeholder" style="padding:1rem;opacity:.6">Loading…</div>';
         $paramsJson = htmlspecialchars(json_encode($params, JSON_THROW_ON_ERROR), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $signature = $this->signer->signLazy($class, $params, $id);
 
         return sprintf(
-            '<div data-ripple data-ripple-lazy data-ripple-id="%s" data-ripple-name="%s" data-ripple-params="%s">%s</div>',
+            '<div data-ripple data-ripple-lazy data-ripple-id="%s" data-ripple-name="%s" data-ripple-params="%s" data-ripple-lx="%s">%s</div>',
             htmlspecialchars($id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
             htmlspecialchars($class, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
             $paramsJson,
+            $signature,
             $placeholder,
         );
     }

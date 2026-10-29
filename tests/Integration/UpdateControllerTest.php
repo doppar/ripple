@@ -8,6 +8,7 @@ use Doppar\Ripple\State\StateSigner;
 use Doppar\Ripple\Tests\Fixtures\CounterComponent;
 use Doppar\Ripple\Tests\Fixtures\FormComponent;
 use Doppar\Ripple\Tests\Fixtures\LazyDeskComponent;
+use Doppar\Ripple\Tests\Fixtures\LazyLockedComponent;
 use Doppar\Ripple\Tests\TestCase;
 use Phaseolies\Http\Request;
 use ReflectionProperty;
@@ -79,12 +80,97 @@ final class UpdateControllerTest extends TestCase
             'n' => LazyDeskComponent::class,
             'i' => 'lz-1',
             'g' => [],
+            'x' => $this->signer->signLazy(LazyDeskComponent::class, [], 'lz-1'),
         ]));
         $payload = $response->getData();
 
         $this->assertTrue($payload['ok'] ?? false);
         $this->assertSame('lz-1', $payload['i'] ?? null);
         $this->assertStringContainsString('Loaded desk', $payload['h'] ?? '');
+    }
+
+    public function test_lazy_endpoint_accepts_placeholder_signature(): void
+    {
+        $manager = new ComponentManager(signer: $this->signer);
+        $placeholder = $manager->mount(LazyLockedComponent::class, ['ownerId' => 7]);
+
+        preg_match('/data-ripple-id="([^"]+)"/', $placeholder, $id);
+        preg_match('/data-ripple-lx="([^"]+)"/', $placeholder, $sig);
+
+        $payload = (new UpdateController($manager))->lazy($this->requestWith([
+            'n' => LazyLockedComponent::class,
+            'i' => $id[1],
+            'g' => ['ownerId' => 7],
+            'x' => $sig[1],
+        ]))->getData();
+
+        $this->assertSame(7, $payload['s']['ownerId'] ?? null);
+    }
+
+    public function test_lazy_endpoint_rejects_forged_locked_params(): void
+    {
+        $signature = $this->signer->signLazy(LazyLockedComponent::class, ['ownerId' => 7], 'lz-2');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid Ripple lazy signature.');
+
+        $this->controller()->lazy($this->requestWith([
+            'n' => LazyLockedComponent::class,
+            'i' => 'lz-2',
+            'g' => ['ownerId' => 99],
+            'x' => $signature,
+        ]));
+    }
+
+    public function test_lazy_endpoint_rejects_missing_signature(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid Ripple lazy signature.');
+
+        $this->controller()->lazy($this->requestWith([
+            'n' => LazyLockedComponent::class,
+            'i' => 'lz-3',
+            'g' => ['ownerId' => 99],
+        ]));
+    }
+
+    public function test_lazy_endpoint_rejects_non_lazy_component(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not lazy');
+
+        $this->controller()->lazy($this->requestWith([
+            'n' => CounterComponent::class,
+            'i' => 'lz-4',
+            'g' => ['count' => 5],
+            'x' => $this->signer->signLazy(CounterComponent::class, ['count' => 5], 'lz-4'),
+        ]));
+    }
+
+    public function test_lazy_signature_does_not_validate_as_state_signature(): void
+    {
+        $lazy = $this->signer->signLazy(LazyLockedComponent::class, [], 'lz-5');
+
+        $this->assertFalse($this->signer->verify([], 'lz-5', $lazy));
+    }
+
+    public function test_state_signature_with_crafted_id_does_not_validate_as_lazy_signature(): void
+    {
+        // A non-strict verify mode lets a client get state signed under any id it chooses.
+        $state = ['ownerId' => 99];
+        $forged = $this->signer->sign($state, 'lazy|a|' . LazyLockedComponent::class);
+
+        $this->assertFalse($this->signer->verifyLazy(LazyLockedComponent::class, $state, 'a', $forged));
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid Ripple lazy signature.');
+
+        $this->controller()->lazy($this->requestWith([
+            'n' => LazyLockedComponent::class,
+            'i' => 'a',
+            'g' => $state,
+            'x' => $forged,
+        ]));
     }
 
     public function test_unknown_action_bubbles_for_doppar_error_handler(): void

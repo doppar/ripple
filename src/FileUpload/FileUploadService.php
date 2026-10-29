@@ -7,6 +7,16 @@ use Doppar\Ripple\Support\Config;
 final class FileUploadService
 {
     /**
+     * Extensions a web server may execute or treat as configuration; never stored.
+     *
+     * @var list<string>
+     */
+    private const BLOCKED_EXTENSIONS = [
+        'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'pht', 'phps', 'phar', 'pgif',
+        'shtml', 'htaccess', 'htpasswd', 'ini', 'cgi', 'pl', 'py', 'asp', 'aspx', 'jsp', 'sh',
+    ];
+
+    /**
      * Store an uploaded file under the temporary path and return its identifier.
      *
      * @param mixed $file
@@ -15,6 +25,10 @@ final class FileUploadService
      */
     public function storeTemporary(mixed $file, string $componentId): string
     {
+        if (! $this->isSafeComponentId($componentId)) {
+            throw new \InvalidArgumentException('Invalid upload component id.');
+        }
+
         $disk = $this->diskName();
         $base = trim((string) Config::get('ripple.file_upload.temporary_path', 'ripple/temp'), '/');
         $id = bin2hex(random_bytes(16));
@@ -22,8 +36,11 @@ final class FileUploadService
             ? (string) $file->getClientOriginalName()
             : 'upload.bin';
         $original = $this->safeBasename($rawOriginal) ?? 'upload.bin';
-        $ext = pathinfo($original, PATHINFO_EXTENSION);
-        $filename = $id . ($ext !== '' ? '.' . $ext : '');
+        if (! $this->isAllowedFilename($original)) {
+            throw new \InvalidArgumentException('Upload file type is not allowed.');
+        }
+        $ext = strtolower(pathinfo($original, PATHINFO_EXTENSION));
+        $filename = $id . (preg_match('/^[a-z0-9]{1,16}$/', $ext) === 1 ? '.' . $ext : '');
         $relative = $base . '/' . $componentId . '/' . $filename;
 
         if (method_exists($file, 'storeAs')) {
@@ -49,6 +66,42 @@ final class FileUploadService
         ]);
 
         return $id;
+    }
+
+    /**
+     * Determine whether a component id is safe to use as a storage folder name.
+     *
+     * @param string $componentId
+     * @return bool
+     */
+    public function isSafeComponentId(string $componentId): bool
+    {
+        return preg_match('/^[A-Za-z0-9_-]{1,64}$/', $componentId) === 1;
+    }
+
+    /**
+     * Determine whether a client filename has an extension that may be stored.
+     *
+     * @param string $filename
+     * @return bool
+     */
+    public function isAllowedFilename(string $filename): bool
+    {
+        $name = strtolower(basename(str_replace('\\', '/', $filename)));
+        $ext = pathinfo($name, PATHINFO_EXTENSION);
+
+        if (in_array($ext, self::BLOCKED_EXTENSIONS, true)) {
+            return false;
+        }
+
+        // Catch double extensions such as "shell.php.jpg" that some servers still execute.
+        foreach (array_slice(explode('.', $name), 1, -1) as $inner) {
+            if (in_array($inner, self::BLOCKED_EXTENSIONS, true)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

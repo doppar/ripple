@@ -107,6 +107,84 @@ final class FileUploadServiceTest extends TestCase
         $this->assertTrue($service->deleteTemporary('missing'));
     }
 
+    public function test_component_id_with_path_traversal_is_rejected(): void
+    {
+        $service = new FileUploadService();
+        $tmp = tempnam(sys_get_temp_dir(), 'up');
+        self::assertNotFalse($tmp);
+        file_put_contents($tmp, 'evil');
+
+        $file = new class ($tmp) {
+            public function __construct(private string $path)
+            {
+            }
+
+            public function getClientOriginalName(): string
+            {
+                return 'note.txt';
+            }
+
+            public function getRealPath(): string
+            {
+                return $this->path;
+            }
+        };
+
+        $this->assertFalse($service->isSafeComponentId('../../../public/x'));
+        $this->assertFalse($service->isSafeComponentId('a/b'));
+        $this->assertFalse($service->isSafeComponentId(''));
+        $this->assertTrue($service->isSafeComponentId('3f9a1c0b7d2e4a68'));
+
+        try {
+            $this->expectException(\InvalidArgumentException::class);
+            $this->expectExceptionMessage('Invalid upload component id.');
+            $service->storeTemporary($file, '../../../public/x');
+        } finally {
+            $this->assertDirectoryDoesNotExist(storage_path('public/x'));
+            @unlink($tmp);
+        }
+    }
+
+    public function test_executable_extensions_are_rejected(): void
+    {
+        $service = new FileUploadService();
+
+        foreach (['shell.php', 'SHELL.PHP', 'x.phtml', 'x.phar', '.htaccess', '.user.ini', 'shell.php.jpg'] as $name) {
+            $this->assertFalse($service->isAllowedFilename($name), $name);
+        }
+        foreach (['avatar.jpg', 'report.pdf', 'data.csv', 'README'] as $name) {
+            $this->assertTrue($service->isAllowedFilename($name), $name);
+        }
+
+        $tmp = tempnam(sys_get_temp_dir(), 'up');
+        self::assertNotFalse($tmp);
+        file_put_contents($tmp, '<?php echo 1;');
+
+        $file = new class ($tmp) {
+            public function __construct(private string $path)
+            {
+            }
+
+            public function getClientOriginalName(): string
+            {
+                return 'shell.php';
+            }
+
+            public function getRealPath(): string
+            {
+                return $this->path;
+            }
+        };
+
+        try {
+            $this->expectException(\InvalidArgumentException::class);
+            $this->expectExceptionMessage('Upload file type is not allowed.');
+            $service->storeTemporary($file, 'comp-1');
+        } finally {
+            @unlink($tmp);
+        }
+    }
+
     public function test_meta_id_with_path_traversal_is_rejected(): void
     {
         $service = new FileUploadService();

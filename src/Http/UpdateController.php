@@ -61,11 +61,13 @@ final class UpdateController
         $name = (string) ($json['n'] ?? $request->input('n') ?? '');
         $params = $json['g'] ?? $request->input('g', []);
         $id = (string) ($json['i'] ?? $request->input('i') ?? '');
+        $signature = (string) ($json['x'] ?? $request->input('x') ?? '');
 
-        return new JsonResponse($this->manager->loadLazy(
+        return new JsonResponse($this->manager->loadLazyRequest(
             $name,
             is_array($params) ? $params : [],
-            $id !== '' ? $id : null,
+            $id,
+            $signature,
         ));
     }
 
