@@ -1,104 +1,40 @@
-# Ripple
+<p align="center">
+    <a href="https://doppar.com" target="_blank">
+        <img src="https://raw.githubusercontent.com/doppar/doppar/7138fb0e72cd55256769be6947df3ac48c300700/public/logo.png" width="400">
+    </a>
+</p>
 
-Server-driven UI for [Doppar](https://doppar.com).
+<p align="center">
+<a href="https://github.com/doppar/ripple/actions/workflows/ci.yml"><img src="https://github.com/doppar/ripple/actions/workflows/ci.yml/badge.svg" alt="Build Status"></a>
+<a href="https://packagist.org/packages/doppar/ripple"><img src="https://img.shields.io/packagist/dt/doppar/ripple" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/doppar/ripple"><img src="https://img.shields.io/packagist/v/doppar/ripple" alt="Latest Stable Version"></a>
+<a href="https://github.com/doppar/ripple/blob/main/LICENSE"><img src="https://img.shields.io/github/license/doppar/ripple" alt="License"></a>
+</p>
 
-You write PHP components and Odo views. The browser calls actions; Ripple re-renders on the server and patches only what changed in the DOM.
+## About Doppar Ripple
 
-## Requirements
+Ripple is server-driven UI for Doppar. You write PHP components and Odo views, and the browser calls component actions over HTTP. Ripple re-renders the component on the server, diffs it against the previous render, and patches only what changed in the DOM, so you get reactive interfaces without writing a JavaScript front end.
 
-- PHP 8.5+
-- Doppar 4.x
-
-## Install
-
-```bash
-composer require doppar/ripple
-```
-
-Register the launcher in `runtime/config/app.php`:
-
-```php
-'launchers' => [
-    App\Launchers\AppLauncher::class,
-    Doppar\Ripple\RippleLauncher::class,
-],
-```
-
-Publish config and client assets (optional; assets are also copied on boot when missing):
-
-```bash
-php pool vendor:publish --tag=ripple
-php pool vendor:publish --tag=ripple-assets
-```
-
-Include the client once in your layout `<head>`:
-
-```odo
-[[! ripple_scripts() !]]
-```
-
-## Quick start
-
-```bash
-php pool make:ripple Counter
-```
-
-```php
-<?php
-
-namespace App\Ripple;
-
-use Doppar\Ripple\Attributes\Invokable;
-use Doppar\Ripple\Component;
-
-class Counter extends Component
-{
-    public int $count = 0;
-
-    #[Invokable]
-    public function increment(): void
-    {
-        $this->count++;
-    }
-
-    public function render(): mixed
-    {
-        return view('ripple.counter');
-    }
-}
-```
-
-```odo
-<div>
-    <p>Count: [[ $count ]]</p>
-    <button type="button" ripple:call="increment">+</button>
-</div>
-```
-
-Mount it in a page:
-
-```odo
-[[! ripple('counter') !]]
-```
+Ripple ships with component state and lifecycle hooks, `ripple:*` view directives, validation, component and browser events, URL-synced properties, pagination, lazy loading, file uploads, SPA-style navigation, and a testing helper for asserting component behavior.
 
 ## Documentation
 
-Full guides live in [`docs/`](docs/README.md):
+Read the documentation from doppar official site [Doppar Ripple](https://ripple.doppar.com)
 
-| Topic | Description |
-|-------|-------------|
-| [Installation](docs/installation.md) | Setup, assets, layout scripts |
-| [Getting started](docs/getting-started.md) | First component end to end |
-| [Components](docs/components.md) | State, attributes, render |
-| [Directives](docs/directives.md) | `ripple:call`, `ripple:submit`, bind, loading, poll |
-| [Lifecycle](docs/lifecycle.md) | `mount`, `updated`, hooks |
-| [Validation](docs/validation.md) | Rules and `$errors` |
-| [Events](docs/events.md) | Component and browser events |
-| [Query string](docs/query-string.md) | URL-synced properties |
-| [Pagination](docs/pagination.md) | `HasPagination` trait |
-| [Lazy loading](docs/lazy-loading.md) | Deferred mount |
-| [File uploads](docs/file-uploads.md) | Temp upload and permanent store |
-| [Navigation](docs/navigation.md) | Soft and hard redirects |
-| [Configuration](docs/configuration.md) | `config/ripple.php` reference |
-| [Testing](docs/testing.md) | `Ripple::test()` and assertions |
+---
 
+## Contributing
+
+Thank you for considering contributing to the Doppar framework! The contribution guide can be found in the [Doppar documentation](https://doppar.com/versions/4.x/contributions).
+
+## Code of Conduct
+
+In order to ensure that the Doppar community is welcoming to all, please review and abide by the [Code of Conduct](https://doppar.com/versions/4.x/contributions#code-of-conduct).
+
+## Security Vulnerabilities
+
+Please review [our security policy](https://github.com/doppar/framework/security/policy) on how to report security vulnerabilities.
+
+## License
+
+The Doppar framework is open-sourced software licensed under the [MIT license](LICENSE).
