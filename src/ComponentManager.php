@@ -6,6 +6,7 @@ use Doppar\Ripple\Attributes\Layout;
 use Doppar\Ripple\Attributes\Lazy;
 use Doppar\Ripple\Attributes\Title;
 use Doppar\Ripple\Delta\DiffEngine;
+use Doppar\Ripple\Exceptions\InvalidSignatureException;
 use Doppar\Ripple\Exceptions\RedirectException;
 use Doppar\Ripple\Exceptions\ValidationException;
 use Doppar\Ripple\State\ComponentHydrator;
@@ -247,7 +248,7 @@ final class ComponentManager
     {
         $class = $this->resolveClass($component);
         if ($id === '' || ! $this->signer->verifyLazy($class, $params, $id, $signature)) {
-            throw new \RuntimeException('Invalid Ripple lazy signature.');
+            throw new InvalidSignatureException('Invalid Ripple lazy signature.');
         }
 
         return $this->loadLazy($class, $params, $id);

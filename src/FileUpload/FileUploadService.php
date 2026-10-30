@@ -7,7 +7,17 @@ use Doppar\Ripple\Support\Config;
 final class FileUploadService
 {
     /**
-     * Extensions a web server may execute or treat as configuration; never stored.
+     * Extensions accepted when ripple.file_upload.allowed_extensions is not configured.
+     *
+     * @var list<string>
+     */
+    private const DEFAULT_ALLOWED_EXTENSIONS = [
+        'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'pdf', 'txt', 'csv', 'doc', 'docx', 'xls', 'xlsx',
+        'ppt', 'pptx', 'odt', 'ods', 'odp', 'rtf', 'zip', 'mp3', 'wav', 'ogg', 'mp4', 'mov', 'webm',
+    ];
+
+    /**
+     * Extensions a web server may execute or treat as configuration; never stored, even when allowed.
      *
      * @var list<string>
      */
@@ -90,7 +100,7 @@ final class FileUploadService
         $name = strtolower(basename(str_replace('\\', '/', $filename)));
         $ext = pathinfo($name, PATHINFO_EXTENSION);
 
-        if (in_array($ext, self::BLOCKED_EXTENSIONS, true)) {
+        if (! in_array($ext, $this->allowedExtensions(), true) || in_array($ext, self::BLOCKED_EXTENSIONS, true)) {
             return false;
         }
 
@@ -238,6 +248,27 @@ final class FileUploadService
         }
 
         return $deleted;
+    }
+
+    /**
+     * Get the configured upload extension allowlist, normalized to lowercase.
+     *
+     * @return list<string>
+     */
+    private function allowedExtensions(): array
+    {
+        $configured = Config::get('ripple.file_upload.allowed_extensions', self::DEFAULT_ALLOWED_EXTENSIONS);
+        $list = is_string($configured) ? explode(',', $configured) : (array) $configured;
+
+        $extensions = [];
+        foreach ($list as $ext) {
+            $ext = strtolower(ltrim(trim((string) $ext), '.'));
+            if ($ext !== '') {
+                $extensions[] = $ext;
+            }
+        }
+
+        return $extensions;
     }
 
     /**

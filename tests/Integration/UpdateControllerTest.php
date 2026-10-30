@@ -111,27 +111,29 @@ final class UpdateControllerTest extends TestCase
     {
         $signature = $this->signer->signLazy(LazyLockedComponent::class, ['ownerId' => 7], 'lz-2');
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Invalid Ripple lazy signature.');
-
-        $this->controller()->lazy($this->requestWith([
+        $response = $this->controller()->lazy($this->requestWith([
             'n' => LazyLockedComponent::class,
             'i' => 'lz-2',
             'g' => ['ownerId' => 99],
             'x' => $signature,
         ]));
+
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertFalse($response->getData()['ok'] ?? true);
+        $this->assertSame('Invalid Ripple lazy signature.', $response->getData()['message'] ?? null);
     }
 
     public function test_lazy_endpoint_rejects_missing_signature(): void
     {
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Invalid Ripple lazy signature.');
-
-        $this->controller()->lazy($this->requestWith([
+        $response = $this->controller()->lazy($this->requestWith([
             'n' => LazyLockedComponent::class,
             'i' => 'lz-3',
             'g' => ['ownerId' => 99],
         ]));
+
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertFalse($response->getData()['ok'] ?? true);
+        $this->assertSame('Invalid Ripple lazy signature.', $response->getData()['message'] ?? null);
     }
 
     public function test_lazy_endpoint_rejects_non_lazy_component(): void
@@ -162,15 +164,16 @@ final class UpdateControllerTest extends TestCase
 
         $this->assertFalse($this->signer->verifyLazy(LazyLockedComponent::class, $state, 'a', $forged));
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Invalid Ripple lazy signature.');
-
-        $this->controller()->lazy($this->requestWith([
+        $response = $this->controller()->lazy($this->requestWith([
             'n' => LazyLockedComponent::class,
             'i' => 'a',
             'g' => $state,
             'x' => $forged,
         ]));
+
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertFalse($response->getData()['ok'] ?? true);
+        $this->assertSame('Invalid Ripple lazy signature.', $response->getData()['message'] ?? null);
     }
 
     public function test_unknown_action_bubbles_for_doppar_error_handler(): void

@@ -74,7 +74,7 @@ final class FileUploadServiceTest extends TestCase
 
             public function getClientOriginalName(): string
             {
-                return 'a.bin';
+                return 'a.txt';
             }
 
             public function getRealPath(): string
@@ -145,6 +145,39 @@ final class FileUploadServiceTest extends TestCase
         }
     }
 
+    public function test_default_allowlist_rejects_unlisted_extensions(): void
+    {
+        $service = new FileUploadService();
+
+        foreach (['page.html', 'logo.svg', 'tool.exe', 'upload.bin', 'README'] as $name) {
+            $this->assertFalse($service->isAllowedFilename($name), $name);
+        }
+    }
+
+    public function test_allowlist_is_configurable(): void
+    {
+        $service = new FileUploadService();
+
+        $this->setRippleConfig('ripple.file_upload.allowed_extensions', ' .SVG, csv ');
+        $this->assertTrue($service->isAllowedFilename('logo.svg'));
+        $this->assertTrue($service->isAllowedFilename('data.csv'));
+        $this->assertFalse($service->isAllowedFilename('avatar.jpg'));
+
+        $this->setRippleConfig('ripple.file_upload.allowed_extensions', ['jpg']);
+        $this->assertTrue($service->isAllowedFilename('avatar.jpg'));
+        $this->assertFalse($service->isAllowedFilename('data.csv'));
+    }
+
+    public function test_executable_extensions_are_rejected_even_when_allowed(): void
+    {
+        $service = new FileUploadService();
+
+        $this->setRippleConfig('ripple.file_upload.allowed_extensions', ['php', 'phar', 'jpg']);
+        $this->assertFalse($service->isAllowedFilename('shell.php'));
+        $this->assertFalse($service->isAllowedFilename('x.phar'));
+        $this->assertFalse($service->isAllowedFilename('shell.php.jpg'));
+    }
+
     public function test_executable_extensions_are_rejected(): void
     {
         $service = new FileUploadService();
@@ -152,7 +185,7 @@ final class FileUploadServiceTest extends TestCase
         foreach (['shell.php', 'SHELL.PHP', 'x.phtml', 'x.phar', '.htaccess', '.user.ini', 'shell.php.jpg'] as $name) {
             $this->assertFalse($service->isAllowedFilename($name), $name);
         }
-        foreach (['avatar.jpg', 'report.pdf', 'data.csv', 'README'] as $name) {
+        foreach (['avatar.jpg', 'AVATAR.JPG', 'report.pdf', 'data.csv'] as $name) {
             $this->assertTrue($service->isAllowedFilename($name), $name);
         }
 

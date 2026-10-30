@@ -35,6 +35,12 @@ export function bindLazy(root) {
   })
     .then((r) => r.json())
     .then((data) => {
+      if (!data || !data.ok) {
+        // Keep the placeholder; a rejected load (e.g. 403) must not blank the component.
+        root.removeAttribute('data-ripple-lazy-loading');
+        console.error('[Ripple] lazy load failed:', data && data.message);
+        return;
+      }
       root.innerHTML = '';
       applyResponse(root, data);
       if (data.s) root.setAttribute('data-ripple-state', JSON.stringify(data.s));
