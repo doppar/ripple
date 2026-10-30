@@ -25,4 +25,5 @@
 /scripts export-ignore
 /resources/js export-ignore
 /AGENTS.md export-ignore
+/CHANGELOG.md export-ignore
 /node_modules export-ignore
