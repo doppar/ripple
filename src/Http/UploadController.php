@@ -4,6 +4,7 @@ namespace Doppar\Ripple\Http;
 
 use Doppar\Ripple\FileUpload\FileUploadService;
 use Doppar\Ripple\Support\Config;
+use Doppar\Ripple\Support\UploadLimits;
 use Phaseolies\Error\JsonErrorRenderer;
 use Phaseolies\Http\Request;
 use Phaseolies\Http\Response;
@@ -34,6 +35,17 @@ final class UploadController
             $file = $request->file('file') ?? null;
 
             if ($componentId === '' || $property === '' || $file === null) {
+                // A body over post_max_size arrives with every field stripped, so say what really happened.
+                if (UploadLimits::exceedsPostLimit((int) ($_SERVER['CONTENT_LENGTH'] ?? 0))) {
+                    return $this->fail(
+                        sprintf(
+                            'Upload exceeds PHP post_max_size (%s). Raise it (and upload_max_filesize) above ripple.file_upload.max_size.',
+                            (string) ini_get('post_max_size'),
+                        ),
+                        422,
+                    );
+                }
+
                 return $this->fail('Missing required upload parameters.', 400);
             }
 

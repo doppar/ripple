@@ -78,6 +78,12 @@ final class PatchApplier
                 }
                 break;
 
+            case Op::REORDER:
+                $parent = $this->nodeAt($root, $segments);
+                [$moved] = array_splice($parent->children, (int) $op['f'], 1);
+                array_splice($parent->children, (int) $op['x'], 0, [$moved]);
+                break;
+
             case Op::INSERT:
                 $parent = $this->nodeAt($root, $segments);
                 $child = $this->fromHtml((string) $op['h']);

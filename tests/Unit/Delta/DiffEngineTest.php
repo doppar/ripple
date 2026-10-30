@@ -226,6 +226,98 @@ final class DiffEngineTest extends TestCase
         }
     }
 
+    public function test_reversing_keyed_children_only_moves_them(): void
+    {
+        $old = $this->parser->parse('<ul><li data-ripple-key="1">A</li><li data-ripple-key="2">B</li><li data-ripple-key="3">C</li></ul>');
+        $new = $this->parser->parse('<ul><li data-ripple-key="3">C</li><li data-ripple-key="2">B</li><li data-ripple-key="1">A</li></ul>');
+
+        $ops = $this->diff->diff($old, $new)->toArray();
+
+        $this->assertNotEmpty($ops);
+        $this->assertSame([Op::REORDER], array_values(array_unique(array_column($ops, 'o'))), json_encode($ops));
+        $this->assertPatchesTo($old, $new);
+    }
+
+    public function test_moving_one_keyed_child_costs_one_move(): void
+    {
+        $old = $this->parser->parse('<ul><li data-ripple-key="1">A</li><li data-ripple-key="2">B</li><li data-ripple-key="3">C</li><li data-ripple-key="4">D</li></ul>');
+        $new = $this->parser->parse('<ul><li data-ripple-key="1">A</li><li data-ripple-key="3">C</li><li data-ripple-key="4">D</li><li data-ripple-key="2">B</li></ul>');
+
+        $ops = $this->diff->diff($old, $new)->toArray();
+
+        $this->assertCount(1, $ops, json_encode($ops));
+        $this->assertSame(Op::REORDER, $ops[0]['o']);
+        $this->assertSame(1, $ops[0]['f']);
+        $this->assertSame(3, $ops[0]['x']);
+        $this->assertPatchesTo($old, $new);
+    }
+
+    public function test_reorder_with_inserts_removes_and_edits_converges(): void
+    {
+        $old = $this->parser->parse('<ul><li data-ripple-key="1">A</li><li data-ripple-key="2">B</li><li data-ripple-key="3">C</li></ul>');
+        $new = $this->parser->parse('<ul><li data-ripple-key="3">C edited</li><li data-ripple-key="4">D</li><li data-ripple-key="1">A</li></ul>');
+
+        $this->assertPatchesTo($old, $new);
+    }
+
+    public function test_unchanged_key_order_emits_no_moves(): void
+    {
+        $old = $this->parser->parse('<ul><li data-ripple-key="1">A</li><li data-ripple-key="2">B</li><li data-ripple-key="3">C</li></ul>');
+        $new = $this->parser->parse('<ul><li data-ripple-key="1">A</li><li data-ripple-key="3">C</li></ul>');
+
+        $ops = $this->diff->diff($old, $new)->toArray();
+
+        $this->assertNotContains(Op::REORDER, array_column($ops, 'o'));
+        $this->assertPatchesTo($old, $new);
+    }
+
+    public function test_repeated_keys_are_never_moved_but_still_converge(): void
+    {
+        $old = $this->parser->parse('<ul><li data-ripple-key="1">A</li><li data-ripple-key="1">B</li><li data-ripple-key="2">C</li></ul>');
+        $new = $this->parser->parse('<ul><li data-ripple-key="2">C</li><li data-ripple-key="1">A</li><li data-ripple-key="1">B</li></ul>');
+
+        $ops = $this->diff->diff($old, $new)->toArray();
+
+        $this->assertNotContains(Op::REORDER, array_column($ops, 'o'));
+        $this->assertPatchesTo($old, $new);
+    }
+
+    public function test_reordering_keyed_rows_inside_nested_markup_converges(): void
+    {
+        $old = $this->parser->parse('<div><h2>List</h2><ul><li data-ripple-key="a"><b>1</b></li><li data-ripple-key="b"><b>2</b></li></ul><p>end</p></div>');
+        $new = $this->parser->parse('<div><h2>List</h2><ul><li data-ripple-key="b"><b>2</b></li><li data-ripple-key="a"><b>9</b></li></ul><p>end</p></div>');
+
+        $this->assertPatchesTo($old, $new);
+    }
+
+    public function test_random_keyed_reorders_with_whitespace_always_converge(): void
+    {
+        mt_srand(20261030);
+
+        for ($round = 0; $round < 300; $round++) {
+            $pool = range(1, mt_rand(1, 9));
+            shuffle($pool);
+            $before = array_slice($pool, 0, mt_rand(0, count($pool)));
+            shuffle($pool);
+            $after = array_slice($pool, 0, mt_rand(0, count($pool)));
+
+            $build = static function (array $keys): string {
+                $rows = '';
+                foreach ($keys as $key) {
+                    $rows .= "\n  <li data-ripple-key=\"{$key}\"><span>row {$key}</span></li>";
+                }
+
+                return '<div><ul>' . $rows . "\n</ul><p>tail</p></div>";
+            };
+
+            $this->assertPatchesTo(
+                $this->parser->parse($build($before)),
+                $this->parser->parse($build($after)),
+                'round ' . $round . ' ' . json_encode([$before, $after]),
+            );
+        }
+    }
+
     private function assertPatchesTo(Node $old, Node $new, string $message = ''): void
     {
         $ops = $this->diff->diff($old, $new)->toArray();
