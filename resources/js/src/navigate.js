@@ -20,21 +20,29 @@ export async function softNavigate(url, { push = true } = {}) {
       return;
     }
 
+    // mode 'same-origin' makes the fetch fail on a redirect to another origin, so a hop through an
+    // open redirect ends in a real browser navigation instead of foreign HTML in this document.
     const res = await fetch(abs.href, {
       headers: {
         Accept: 'text/html',
         'X-Ripple-Navigate': '1',
       },
       credentials: 'same-origin',
+      mode: 'same-origin',
     });
 
-    if (!res.ok) {
+    const finalUrl = new URL(res.url || abs.href, window.location.href);
+    const type = (res.headers.get('content-type') || '').toLowerCase();
+
+    // Only same-origin HTML is swapped in. Anything else (JSON, text/plain, files) is loaded the
+    // normal way, where the browser applies its own content-type handling.
+    if (!res.ok || finalUrl.origin !== window.location.origin || !type.startsWith('text/html')) {
       window.location.assign(abs.href);
       return;
     }
 
     const html = await res.text();
-    applyDocument(html, push ? res.url || abs.href : null);
+    applyDocument(html, push ? finalUrl.href : null);
   } catch (_) {
     window.location.assign(url);
   } finally {

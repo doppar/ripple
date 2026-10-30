@@ -328,6 +328,11 @@ abstract class Component
         if (! property_exists($this, $property)) {
             throw new \InvalidArgumentException("Property [{$property}] does not exist on " . static::class);
         }
+        // Only public state is writable. Protected/private properties hold Ripple's own bookkeeping
+        // (locked, tracked, eventListeners, …) and the component's internals.
+        if (! in_array($property, $this->tracked, true)) {
+            throw new \InvalidArgumentException("Property [{$property}] cannot be updated from the client.");
+        }
         if (in_array($property, $this->hidden, true) || in_array($property, $this->computed, true)) {
             throw new \InvalidArgumentException("Property [{$property}] cannot be updated from the client.");
         }

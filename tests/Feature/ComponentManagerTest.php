@@ -179,7 +179,7 @@ final class ComponentManagerTest extends TestCase
     {
         $state = ['count' => 0, 'secret' => 'nope'];
         $id = 'abc';
-        $x = $this->manager->signer()->sign($state, $id);
+        $x = $this->manager->signer()->sign($state, $id, CounterComponent::class);
 
         $result = $this->manager->update([
             'i' => $id,
@@ -233,7 +233,7 @@ final class ComponentManagerTest extends TestCase
     {
         $state = ['count' => 0, 'secret' => 'nope'];
         $id = 'abc';
-        $x = $this->manager->signer()->sign($state, $id);
+        $x = $this->manager->signer()->sign($state, $id, CounterComponent::class);
 
         $this->expectException(\InvalidArgumentException::class);
         $this->manager->update([
@@ -384,7 +384,7 @@ final class ComponentManagerTest extends TestCase
             'p' => 'email',
             'v' => 'still-bad',
             's' => $state,
-            'x' => $this->manager->signer()->sign($state, 'f2'),
+            'x' => $this->manager->signer()->sign($state, 'f2', FormComponent::class),
             'er' => ['note' => ['kept']],
         ]);
 
