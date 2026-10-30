@@ -137,6 +137,9 @@ return [
     | temporary_path: relative path on that disk
     | max_size: max KB (also raise PHP upload_max_filesize)
     | cleanup_after_hours: for `php pool ripple:cleanup`
+    | allowed_extensions: lowercase extensions accepted for upload, as an array
+    |   or a comma-separated string. Server-executable types (php, phar,
+    |   htaccess, …) are always rejected, even when listed here.
     |
     */
 
@@ -145,6 +148,10 @@ return [
         'temporary_path' => env('RIPPLE_FILE_TEMP_PATH', 'ripple/temp'),
         'max_size' => env('RIPPLE_FILE_MAX_SIZE', 12288),
         'cleanup_after_hours' => env('RIPPLE_FILE_CLEANUP_HOURS', 24),
+        'allowed_extensions' => env(
+            'RIPPLE_FILE_ALLOWED_EXTENSIONS',
+            'jpg,jpeg,png,gif,webp,avif,pdf,txt,csv,doc,docx,xls,xlsx,ppt,pptx,odt,ods,odp,rtf,zip,mp3,wav,ogg,mp4,mov,webm',
+        ),
     ],
 
 ];

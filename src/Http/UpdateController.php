@@ -3,6 +3,7 @@
 namespace Doppar\Ripple\Http;
 
 use Doppar\Ripple\ComponentManager;
+use Doppar\Ripple\Exceptions\InvalidSignatureException;
 use Doppar\Ripple\Exceptions\RedirectException;
 use Doppar\Ripple\Exceptions\ValidationException;
 use Phaseolies\Http\Request;
@@ -61,12 +62,21 @@ final class UpdateController
         $name = (string) ($json['n'] ?? $request->input('n') ?? '');
         $params = $json['g'] ?? $request->input('g', []);
         $id = (string) ($json['i'] ?? $request->input('i') ?? '');
+        $signature = (string) ($json['x'] ?? $request->input('x') ?? '');
 
-        return new JsonResponse($this->manager->loadLazy(
-            $name,
-            is_array($params) ? $params : [],
-            $id !== '' ? $id : null,
-        ));
+        try {
+            return new JsonResponse($this->manager->loadLazyRequest(
+                $name,
+                is_array($params) ? $params : [],
+                $id,
+                $signature,
+            ));
+        } catch (InvalidSignatureException $e) {
+            return new JsonResponse([
+                'ok' => false,
+                'message' => $e->getMessage(),
+            ], 403);
+        }
     }
 
     /**

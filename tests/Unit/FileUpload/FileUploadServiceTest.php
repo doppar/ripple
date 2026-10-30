@@ -74,7 +74,7 @@ final class FileUploadServiceTest extends TestCase
 
             public function getClientOriginalName(): string
             {
-                return 'a.bin';
+                return 'a.txt';
             }
 
             public function getRealPath(): string
@@ -105,6 +105,117 @@ final class FileUploadServiceTest extends TestCase
         $this->assertNull($service->getTemporaryPath('missing'));
         $this->assertNull($service->moveToPermanent('missing', 'x'));
         $this->assertTrue($service->deleteTemporary('missing'));
+    }
+
+    public function test_component_id_with_path_traversal_is_rejected(): void
+    {
+        $service = new FileUploadService();
+        $tmp = tempnam(sys_get_temp_dir(), 'up');
+        self::assertNotFalse($tmp);
+        file_put_contents($tmp, 'evil');
+
+        $file = new class ($tmp) {
+            public function __construct(private string $path)
+            {
+            }
+
+            public function getClientOriginalName(): string
+            {
+                return 'note.txt';
+            }
+
+            public function getRealPath(): string
+            {
+                return $this->path;
+            }
+        };
+
+        $this->assertFalse($service->isSafeComponentId('../../../public/x'));
+        $this->assertFalse($service->isSafeComponentId('a/b'));
+        $this->assertFalse($service->isSafeComponentId(''));
+        $this->assertTrue($service->isSafeComponentId('3f9a1c0b7d2e4a68'));
+
+        try {
+            $this->expectException(\InvalidArgumentException::class);
+            $this->expectExceptionMessage('Invalid upload component id.');
+            $service->storeTemporary($file, '../../../public/x');
+        } finally {
+            $this->assertDirectoryDoesNotExist(storage_path('public/x'));
+            @unlink($tmp);
+        }
+    }
+
+    public function test_default_allowlist_rejects_unlisted_extensions(): void
+    {
+        $service = new FileUploadService();
+
+        foreach (['page.html', 'logo.svg', 'tool.exe', 'upload.bin', 'README'] as $name) {
+            $this->assertFalse($service->isAllowedFilename($name), $name);
+        }
+    }
+
+    public function test_allowlist_is_configurable(): void
+    {
+        $service = new FileUploadService();
+
+        $this->setRippleConfig('ripple.file_upload.allowed_extensions', ' .SVG, csv ');
+        $this->assertTrue($service->isAllowedFilename('logo.svg'));
+        $this->assertTrue($service->isAllowedFilename('data.csv'));
+        $this->assertFalse($service->isAllowedFilename('avatar.jpg'));
+
+        $this->setRippleConfig('ripple.file_upload.allowed_extensions', ['jpg']);
+        $this->assertTrue($service->isAllowedFilename('avatar.jpg'));
+        $this->assertFalse($service->isAllowedFilename('data.csv'));
+    }
+
+    public function test_executable_extensions_are_rejected_even_when_allowed(): void
+    {
+        $service = new FileUploadService();
+
+        $this->setRippleConfig('ripple.file_upload.allowed_extensions', ['php', 'phar', 'jpg']);
+        $this->assertFalse($service->isAllowedFilename('shell.php'));
+        $this->assertFalse($service->isAllowedFilename('x.phar'));
+        $this->assertFalse($service->isAllowedFilename('shell.php.jpg'));
+    }
+
+    public function test_executable_extensions_are_rejected(): void
+    {
+        $service = new FileUploadService();
+
+        foreach (['shell.php', 'SHELL.PHP', 'x.phtml', 'x.phar', '.htaccess', '.user.ini', 'shell.php.jpg'] as $name) {
+            $this->assertFalse($service->isAllowedFilename($name), $name);
+        }
+        foreach (['avatar.jpg', 'AVATAR.JPG', 'report.pdf', 'data.csv'] as $name) {
+            $this->assertTrue($service->isAllowedFilename($name), $name);
+        }
+
+        $tmp = tempnam(sys_get_temp_dir(), 'up');
+        self::assertNotFalse($tmp);
+        file_put_contents($tmp, '<?php echo 1;');
+
+        $file = new class ($tmp) {
+            public function __construct(private string $path)
+            {
+            }
+
+            public function getClientOriginalName(): string
+            {
+                return 'shell.php';
+            }
+
+            public function getRealPath(): string
+            {
+                return $this->path;
+            }
+        };
+
+        try {
+            $this->expectException(\InvalidArgumentException::class);
+            $this->expectExceptionMessage('Upload file type is not allowed.');
+            $service->storeTemporary($file, 'comp-1');
+        } finally {
+            @unlink($tmp);
+        }
     }
 
     public function test_meta_id_with_path_traversal_is_rejected(): void

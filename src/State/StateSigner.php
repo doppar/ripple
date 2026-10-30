@@ -84,6 +84,40 @@ final class StateSigner
     }
 
     /**
+     * Compute the HMAC signature binding a lazy placeholder's class, id and mount params.
+     *
+     * @param string $class
+     * @param array<string, mixed> $params
+     * @param string $componentId
+     * @return string
+     */
+    public function signLazy(string $class, array $params, string $componentId): string
+    {
+        // A key derived only for lazy placeholders: no state signature, whatever its id, can ever match.
+        $lazyKey = hash_hmac('sha256', 'ripple-lazy', $this->key);
+
+        return hash_hmac('sha256', $this->lazyPayload($class, $params, $componentId), $lazyKey);
+    }
+
+    /**
+     * Verify that a lazy signature matches the placeholder's class, id and mount params.
+     *
+     * @param string $class
+     * @param array<string, mixed> $params
+     * @param string $componentId
+     * @param string $signature
+     * @return bool
+     */
+    public function verifyLazy(string $class, array $params, string $componentId, string $signature): bool
+    {
+        if ($signature === '') {
+            return false;
+        }
+
+        return hash_equals($this->signLazy($class, $params, $componentId), $signature);
+    }
+
+    /**
      * Compute an MD5 fingerprint of the normalized state.
      *
      * @param array<string, mixed> $state
@@ -106,6 +140,24 @@ final class StateSigner
     private function payload(array $state, string $componentId): string
     {
         return $componentId . '|' . json_encode($this->normalize($state), JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * Build the string payload that gets signed for a lazy placeholder.
+     *
+     * Fields are JSON-encoded so no id or class name can shift bytes between them.
+     *
+     * @param string $class
+     * @param array<string, mixed> $params
+     * @param string $componentId
+     * @return string
+     */
+    private function lazyPayload(string $class, array $params, string $componentId): string
+    {
+        return json_encode(
+            [$componentId, ltrim($class, '\\'), $this->normalize($params)],
+            JSON_THROW_ON_ERROR,
+        );
     }
 
     /**
