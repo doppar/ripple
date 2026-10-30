@@ -45,6 +45,15 @@ final class UploadController
                 return $this->fail('Missing required upload parameters.', 400);
             }
 
+            if (! $this->uploads->isSafeComponentId($componentId)) {
+                return $this->fail('Invalid component id.', 400);
+            }
+
+            $clientName = method_exists($file, 'getClientOriginalName') ? (string) $file->getClientOriginalName() : '';
+            if ($clientName !== '' && ! $this->uploads->isAllowedFilename($clientName)) {
+                return $this->fail('File type not allowed.', 422);
+            }
+
             // PHP rejected the upload (often upload_max_filesize=2M) before we can read size.
             if (method_exists($file, 'isValid') && ! $file->isValid()) {
                 $code = method_exists($file, 'getError') ? (int) $file->getError() : UPLOAD_ERR_NO_FILE;
