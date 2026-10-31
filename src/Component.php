@@ -352,6 +352,29 @@ abstract class Component
     }
 
     /**
+     * Determine whether a client value would leave the property as it is after coercion.
+     *
+     * Bound fields ride along with every action, so "5" for an int property that already
+     * holds 5 is not a change and must not run the updating() and updated() hooks.
+     *
+     * @param string $property
+     * @param mixed $value
+     * @return bool
+     */
+    public function isUnchanged(string $property, mixed $value): bool
+    {
+        if (! property_exists($this, $property)) {
+            return false;
+        }
+
+        $ref = new ReflectionProperty($this, $property);
+
+        return $ref->isPublic()
+            && $ref->isInitialized($this)
+            && $ref->getValue($this) === $this->castIncoming($ref, $value);
+    }
+
+    /**
      * Coerce an incoming client value to the property's declared scalar type.
      *
      * Wire payloads arrive as JSON/strings; typed public props need coercion

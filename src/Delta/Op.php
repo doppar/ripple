@@ -55,6 +55,7 @@ final class Op
      */
     private const DATA_KEYS = [
         'value' => 'v',
+        'from' => 'f',
         'html' => 'h',
         'attrs' => 'a',
         'index' => 'x',
