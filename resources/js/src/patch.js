@@ -15,6 +15,26 @@ function nodeAt(root, path) {
   return node;
 }
 
+/**
+ * Take the child at `from` out of the list and put it back so it ends at index `to`.
+ * A node that is moved loses focus, so give it back to the control the user was typing in.
+ */
+function moveChild(parent, from, to, active) {
+  const kids = Array.from(parent.childNodes);
+  const [node] = kids.splice(from, 1);
+  if (!node) return;
+
+  const hadFocus = active && node.contains(active);
+  const field = hadFocus && 'selectionStart' in active ? { start: active.selectionStart, end: active.selectionEnd } : null;
+
+  parent.insertBefore(node, kids[to] ?? null);
+
+  if (hadFocus && document.activeElement !== active) {
+    active.focus({ preventScroll: true });
+    if (field && field.start != null) active.setSelectionRange(field.start, field.end);
+  }
+}
+
 export function applyPatches(mount, patches) {
   const root = contentRoot(mount);
   const active = document.activeElement;
@@ -49,6 +69,9 @@ export function applyPatches(mount, patches) {
         break;
       case 'x':
         if (target) target.remove();
+        break;
+      case 'm':
+        if (target && Number.isInteger(p.f) && Number.isInteger(p.x)) moveChild(target, p.f, p.x, active);
         break;
       case 'i':
         if (target && p.h != null) {

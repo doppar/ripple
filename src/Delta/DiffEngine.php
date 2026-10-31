@@ -104,7 +104,163 @@ final class DiffEngine
             return;
         }
 
+        [$oldKids, $moves] = $this->reorderKeyed($oldKids, $newKids);
+        foreach ($moves as [$from, $to]) {
+            $patch->add(new Op(Op::REORDER, $path, ['from' => $from, 'index' => $to]));
+        }
+
         $this->walkChildren($oldKids, $newKids, $path, $patch);
+    }
+
+    /**
+     * Move keyed children so the keys shared by both lists appear in the new order.
+     *
+     * @param list<Node> $oldKids
+     * @param list<Node> $newKids
+     * @return array{list<Node>, list<array{int, int}>}
+     */
+    private function reorderKeyed(array $oldKids, array $newKids): array
+    {
+        $oldKeyed = $this->keyedSignatures($oldKids);
+        $newKeyed = $this->keyedSignatures($newKids);
+
+        if ($oldKeyed === null || $newKeyed === null) {
+            return [$oldKids, []];
+        }
+
+        $inOld = array_flip($oldKeyed);
+        $inNew = array_flip($newKeyed);
+        $oldOrder = array_values(array_filter($oldKeyed, static fn (string $sig) => isset($inNew[$sig])));
+        $newOrder = array_values(array_filter($newKeyed, static fn (string $sig) => isset($inOld[$sig])));
+
+        if ($oldOrder === $newOrder) {
+            return [$oldKids, []];
+        }
+
+        $rank = array_flip($newOrder);
+        $stay = [];
+        foreach ($this->longestIncreasing(array_map(static fn (string $sig) => $rank[$sig], $oldOrder)) as $r) {
+            $stay[$newOrder[$r]] = true;
+        }
+
+        $firstStay = null;
+        foreach ($newOrder as $sig) {
+            if (isset($stay[$sig])) {
+                $firstStay = $sig;
+                break;
+            }
+        }
+
+        $current = $oldKids;
+        $moves = [];
+
+        foreach ($newOrder as $i => $sig) {
+            if (isset($stay[$sig])) {
+                continue;
+            }
+
+            $from = $this->indexOfSignature($current, $sig);
+            $anchor = $this->indexOfSignature($current, $i === 0 ? (string) $firstStay : $newOrder[$i - 1]);
+
+            // Index of the anchor once the moved child has been taken out of the list.
+            $anchor -= $from < $anchor ? 1 : 0;
+            $to = $i === 0 ? $anchor : $anchor + 1;
+
+            if ($from === $to) {
+                continue;
+            }
+
+            [$node] = array_splice($current, $from, 1);
+            array_splice($current, $to, 0, [$node]);
+            $moves[] = [$from, $to];
+        }
+
+        return [$current, $moves];
+    }
+
+    /**
+     * Get the signatures of the keyed children, or null when a key is repeated.
+     *
+     * @param list<Node> $kids
+     * @return list<string>|null
+     */
+    private function keyedSignatures(array $kids): ?array
+    {
+        $signatures = [];
+
+        foreach ($kids as $kid) {
+            if ($kid->isText() || $kid->key === null) {
+                continue;
+            }
+
+            $signature = $this->signature($kid);
+
+            if (in_array($signature, $signatures, true)) {
+                return null;
+            }
+
+            $signatures[] = $signature;
+        }
+
+        return $signatures;
+    }
+
+    /**
+     * Find the index of the child with the given signature.
+     *
+     * @param list<Node> $kids
+     * @param string $signature
+     * @return int
+     */
+    private function indexOfSignature(array $kids, string $signature): int
+    {
+        foreach ($kids as $index => $kid) {
+            if (! $kid->isText() && $this->signature($kid) === $signature) {
+                return $index;
+            }
+        }
+
+        throw new \LogicException("Keyed child [{$signature}] is missing from the list.");
+    }
+
+    /**
+     * Get the longest strictly increasing subsequence of a list of integers.
+     *
+     * @param list<int> $sequence
+     * @return list<int>
+     */
+    private function longestIncreasing(array $sequence): array
+    {
+        $tails = [];
+        $previous = [];
+
+        foreach ($sequence as $i => $value) {
+            $low = 0;
+            $high = count($tails);
+
+            while ($low < $high) {
+                $mid = ($low + $high) >> 1;
+
+                if ($sequence[$tails[$mid]] < $value) {
+                    $low = $mid + 1;
+                } else {
+                    $high = $mid;
+                }
+            }
+
+            $previous[$i] = $low > 0 ? $tails[$low - 1] : -1;
+            $tails[$low] = $i;
+        }
+
+        $result = [];
+        $k = $tails === [] ? -1 : end($tails);
+
+        while ($k >= 0) {
+            array_unshift($result, $sequence[$k]);
+            $k = $previous[$k];
+        }
+
+        return $result;
     }
 
     /**

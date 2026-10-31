@@ -398,6 +398,11 @@ final class ComponentManager
                 continue;
             }
 
+            // A bound field that still holds the server value is not an update.
+            if ($instance->isUnchanged($property, $value)) {
+                continue;
+            }
+
             try {
                 $instance->syncProperty($property, $value, $resetValidation);
             } catch (\InvalidArgumentException) {

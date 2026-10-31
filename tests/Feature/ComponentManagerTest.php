@@ -11,6 +11,7 @@ use Doppar\Ripple\Tests\Fixtures\ConditionalErrorComponent;
 use Doppar\Ripple\Tests\Fixtures\CounterComponent;
 use Doppar\Ripple\Tests\Fixtures\FormComponent;
 use Doppar\Ripple\Tests\Fixtures\HistoryComponent;
+use Doppar\Ripple\Tests\Fixtures\HookCountComponent;
 use Doppar\Ripple\Tests\Fixtures\KitchenSinkComponent;
 use Doppar\Ripple\Tests\Fixtures\LazyDeskComponent;
 use Doppar\Ripple\Tests\Support\AppHarness;
@@ -211,6 +212,45 @@ final class ComponentManagerTest extends TestCase
         $this->assertSame('typing', $result['s']['note']);
         $this->assertSame('a@b.co', $result['s']['email']);
         $this->assertSame(['kept'], $result['e']['email'] ?? null);
+    }
+
+    public function test_unchanged_bound_fields_do_not_run_update_hooks(): void
+    {
+        $state = ['page' => 3, 'perPage' => 5, 'subscribed' => false, 'note' => '', 'hooks' => 0];
+
+        // The browser reports every bound field as a string, so "5" is the int 5 the server holds.
+        $result = $this->manager->update($this->withSignature([
+            'i' => 'hooks-same',
+            'n' => HookCountComponent::class,
+            't' => 'a',
+            'a' => 'previous',
+            'g' => [],
+            'm' => ['perPage' => '5', 'subscribed' => false, 'note' => ''],
+            's' => $state,
+        ], $this->manager->signer()));
+
+        $this->assertSame(2, $result['s']['page']);
+        $this->assertSame(0, $result['s']['hooks']);
+    }
+
+    public function test_changed_bound_fields_still_run_update_hooks(): void
+    {
+        $state = ['page' => 3, 'perPage' => 5, 'subscribed' => false, 'note' => '', 'hooks' => 0];
+
+        $result = $this->manager->update($this->withSignature([
+            'i' => 'hooks-changed',
+            'n' => HookCountComponent::class,
+            't' => 'a',
+            'a' => 'previous',
+            'g' => [],
+            'm' => ['perPage' => '10', 'subscribed' => true],
+            's' => $state,
+        ], $this->manager->signer()));
+
+        $this->assertSame(10, $result['s']['perPage']);
+        $this->assertTrue($result['s']['subscribed']);
+        $this->assertSame(2, $result['s']['hooks']);
+        $this->assertSame(1, $result['s']['page']);
     }
 
     public function test_property_update_requires_valid_signature(): void

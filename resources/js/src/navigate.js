@@ -2,11 +2,19 @@
 
 import { startProgress, finishProgress } from './progress.js';
 
-let navigating = false;
+let latest = 0;
+let inflight = null;
 
+/**
+ * Soft-navigate to a URL. A newer navigation replaces one that is still loading: the older fetch
+ * is aborted and its result is never applied, so the page always matches the last URL asked for
+ * (Back right after Forward, or two quick clicks on a link).
+ */
 export async function softNavigate(url, { push = true } = {}) {
-  if (navigating) return;
-  navigating = true;
+  const id = ++latest;
+  if (inflight) inflight.abort();
+  const controller = new AbortController();
+  inflight = controller;
 
   const abs = new URL(url, window.location.href);
   startProgress();
@@ -26,7 +34,10 @@ export async function softNavigate(url, { push = true } = {}) {
         'X-Ripple-Navigate': '1',
       },
       credentials: 'same-origin',
+      signal: controller.signal,
     });
+
+    if (id !== latest) return;
 
     if (!res.ok) {
       window.location.assign(abs.href);
@@ -34,12 +45,18 @@ export async function softNavigate(url, { push = true } = {}) {
     }
 
     const html = await res.text();
+    if (id !== latest) return;
+
     applyDocument(html, push ? res.url || abs.href : null);
   } catch (_) {
+    // A newer navigation took over; this one was aborted on purpose.
+    if (id !== latest) return;
     window.location.assign(url);
   } finally {
-    finishProgress();
-    navigating = false;
+    if (id === latest) {
+      inflight = null;
+      finishProgress();
+    }
   }
 }
 
