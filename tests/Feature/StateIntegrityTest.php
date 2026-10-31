@@ -36,7 +36,7 @@ final class StateIntegrityTest extends TestCase
             'a' => 'increment',
             'g' => [],
             's' => $forged,
-            'x' => $this->manager->signer()->sign($honest, 'atk-1'),
+            'x' => $this->manager->signer()->sign($honest, 'atk-1', CounterComponent::class),
         ]);
     }
 

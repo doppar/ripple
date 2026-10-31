@@ -44,22 +44,22 @@ final class ComponentSecurityTest extends TestCase
     {
         $signer = new StateSigner('test-key');
         $state = ['count' => 1];
-        $sig = $signer->sign($state, 'abc');
-        $this->assertTrue($signer->verify($state, 'abc', $sig));
-        $this->assertFalse($signer->verify(['count' => 2], 'abc', $sig));
+        $sig = $signer->sign($state, 'abc', CounterComponent::class);
+        $this->assertTrue($signer->verify($state, 'abc', CounterComponent::class, $sig));
+        $this->assertFalse($signer->verify(['count' => 2], 'abc', CounterComponent::class, $sig));
     }
 
     public function test_signer_rejects_empty_signature(): void
     {
         $signer = new StateSigner('test-key');
-        $this->assertFalse($signer->verify(['a' => 1], 'id', ''));
+        $this->assertFalse($signer->verify(['a' => 1], 'id', CounterComponent::class, ''));
     }
 
     public function test_signer_is_order_independent(): void
     {
         $signer = new StateSigner('k');
-        $a = $signer->sign(['b' => 2, 'a' => 1], 'id');
-        $b = $signer->sign(['a' => 1, 'b' => 2], 'id');
+        $a = $signer->sign(['b' => 2, 'a' => 1], 'id', CounterComponent::class);
+        $b = $signer->sign(['a' => 1, 'b' => 2], 'id', CounterComponent::class);
         $this->assertSame($a, $b);
         $this->assertSame(
             $signer->fingerprint(['b' => 2, 'a' => 1]),
@@ -71,8 +71,8 @@ final class ComponentSecurityTest extends TestCase
     {
         $this->setRippleConfig('app.env', 'local');
         $signer = StateSigner::fromConfig();
-        $sig = $signer->sign(['x' => 1], 'c1');
-        $this->assertTrue($signer->verify(['x' => 1], 'c1', $sig));
+        $sig = $signer->sign(['x' => 1], 'c1', CounterComponent::class);
+        $this->assertTrue($signer->verify(['x' => 1], 'c1', CounterComponent::class, $sig));
     }
 
     public function test_signer_from_config_fails_closed_in_production_without_key(): void

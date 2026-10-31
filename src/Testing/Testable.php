@@ -360,7 +360,7 @@ final class Testable
         if (isset($response['x']) && is_string($response['x']) && $response['x'] !== '') {
             $this->signature = $response['x'];
         } else {
-            $this->signature = $this->manager->signer()->sign($this->state, $this->id);
+            $this->signature = $this->manager->signState($this->state, $this->id, $this->name);
             $this->fingerprint = $this->manager->signer()->fingerprint($this->state);
         }
 
