@@ -38,7 +38,7 @@ abstract class TestCase extends BaseTestCase
     {
         $state = is_array($payload['s'] ?? null) ? $payload['s'] : [];
         $id = (string) ($payload['i'] ?? '');
-        $payload['x'] = $signer->sign($state, $id);
+        $payload['x'] = $signer->sign($state, $id, (string) ($payload['n'] ?? ''));
 
         return $payload;
     }

@@ -96,7 +96,7 @@ final class ComponentManager
         $state = $instance->getState();
         $id = $instance->getId();
         $fingerprint = $this->signer->fingerprint($state);
-        $signature = $this->signer->sign($state, $id);
+        $signature = $this->signer->sign($state, $id, $instance::class);
 
         return $this->wrap($html, $id, $instance::class, $state, $fingerprint, $signature, $instance->getEventListeners());
     }
@@ -143,7 +143,7 @@ final class ComponentManager
         }
 
         $class = $this->resolveClass($name);
-        $verified = $this->verifySignature($state, $id, $payload);
+        $verified = $this->verifySignature($state, $id, $class, $payload);
 
         $instance = $this->hydrator->hydrate(
             $class,
@@ -282,7 +282,7 @@ final class ComponentManager
             'h' => $html,
             's' => $state,
             'f' => $this->signer->fingerprint($state),
-            'x' => $this->signer->sign($state, $cid),
+            'x' => $this->signer->sign($state, $cid, $instance::class),
             'el' => $instance->getEventListeners(),
         ];
     }
@@ -376,6 +376,19 @@ final class ComponentManager
     public function signer(): StateSigner
     {
         return $this->signer;
+    }
+
+    /**
+     * Sign a component's state, resolving the component name the same way update() does.
+     *
+     * @param array<string, mixed> $state
+     * @param string $id
+     * @param string $component
+     * @return string
+     */
+    public function signState(array $state, string $id, string $component): string
+    {
+        return $this->signer->sign($state, $id, $this->resolveClass($component));
     }
 
     /**
@@ -626,10 +639,11 @@ final class ComponentManager
      *
      * @param array<string, mixed> $state
      * @param string $id
+     * @param class-string<Component> $class
      * @param array<string, mixed> $payload
      * @return bool True when the payload signature was verified (Locked props may be trusted).
      */
-    private function verifySignature(array $state, string $id, array $payload): bool
+    private function verifySignature(array $state, string $id, string $class, array $payload): bool
     {
         $mode = Config::get('ripple.security.verify_state', 'strict');
         $type = (string) ($payload['t'] ?? 'a');
@@ -644,7 +658,7 @@ final class ComponentManager
         }
 
         $signature = (string) ($payload['x'] ?? '');
-        if ($signature === '' || ! $this->signer->verify($state, $id, $signature)) {
+        if ($signature === '' || ! $this->signer->verify($state, $id, $class, $signature)) {
             throw new \RuntimeException('Invalid Ripple state signature.');
         }
 
@@ -678,7 +692,7 @@ final class ComponentManager
             'd' => $deltas,
             's' => $state,
             'f' => $this->signer->fingerprint($state),
-            'x' => $this->signer->sign($state, $cid),
+            'x' => $this->signer->sign($state, $cid, $instance::class),
         ], $extra);
 
         if (! array_key_exists('e', $payload)) {

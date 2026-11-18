@@ -55,32 +55,34 @@ final class StateSigner
     }
 
     /**
-     * Compute the HMAC signature for a component's state.
+     * Compute the HMAC signature binding a component's state to its id and class.
      *
      * @param array<string, mixed> $state
      * @param string $componentId
+     * @param string $class
      * @return string
      */
-    public function sign(array $state, string $componentId): string
+    public function sign(array $state, string $componentId, string $class): string
     {
-        return hash_hmac('sha256', $this->payload($state, $componentId), $this->key);
+        return hash_hmac('sha256', $this->payload($state, $componentId, $class), $this->key);
     }
 
     /**
-     * Verify that a signature matches the component's state.
+     * Verify that a signature matches the component's state, id and class.
      *
      * @param array<string, mixed> $state
      * @param string $componentId
+     * @param string $class
      * @param string $signature
      * @return bool
      */
-    public function verify(array $state, string $componentId, string $signature): bool
+    public function verify(array $state, string $componentId, string $class, string $signature): bool
     {
         if ($signature === '') {
             return false;
         }
 
-        return hash_equals($this->sign($state, $componentId), $signature);
+        return hash_equals($this->sign($state, $componentId, $class), $signature);
     }
 
     /**
@@ -133,13 +135,20 @@ final class StateSigner
     /**
      * Build the string payload that gets signed for a component's state.
      *
+     * The class is part of the payload so state signed for one component cannot be replayed
+     * against another. Fields are JSON-encoded so no id or class name can shift bytes between them.
+     *
      * @param array<string, mixed> $state
      * @param string $componentId
+     * @param string $class
      * @return string
      */
-    private function payload(array $state, string $componentId): string
+    private function payload(array $state, string $componentId, string $class): string
     {
-        return $componentId . '|' . json_encode($this->normalize($state), JSON_THROW_ON_ERROR);
+        return json_encode(
+            ['state', $componentId, ltrim($class, '\\'), $this->normalize($state)],
+            JSON_THROW_ON_ERROR,
+        );
     }
 
     /**

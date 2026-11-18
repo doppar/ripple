@@ -153,14 +153,14 @@ final class UpdateControllerTest extends TestCase
     {
         $lazy = $this->signer->signLazy(LazyLockedComponent::class, [], 'lz-5');
 
-        $this->assertFalse($this->signer->verify([], 'lz-5', $lazy));
+        $this->assertFalse($this->signer->verify([], 'lz-5', LazyLockedComponent::class, $lazy));
     }
 
     public function test_state_signature_with_crafted_id_does_not_validate_as_lazy_signature(): void
     {
         // A non-strict verify mode lets a client get state signed under any id it chooses.
         $state = ['ownerId' => 99];
-        $forged = $this->signer->sign($state, 'lazy|a|' . LazyLockedComponent::class);
+        $forged = $this->signer->sign($state, 'lazy|a|' . LazyLockedComponent::class, LazyLockedComponent::class);
 
         $this->assertFalse($this->signer->verifyLazy(LazyLockedComponent::class, $state, 'a', $forged));
 
