@@ -7,6 +7,27 @@ use Doppar\Ripple\Support\Config;
 final class StateSigner
 {
     /**
+     * The built-in key used only for local development and tests. It is public, so it signs nothing real.
+     *
+     * @var string
+     */
+    public const DEV_KEY = 'ripple-dev-key';
+
+    /**
+     * Environments allowed to fall back to the built-in development key.
+     *
+     * @var list<string>
+     */
+    private const DEV_ENVIRONMENTS = ['local', 'development', 'dev', 'testing', 'test'];
+
+    /**
+     * Minimum length of a configured signing key outside development environments.
+     *
+     * @var int
+     */
+    public const MIN_KEY_LENGTH = 32;
+
+    /**
      * Create a new state signer instance.
      *
      * @param string $key
@@ -16,42 +37,82 @@ final class StateSigner
     }
 
     /**
-     * Create a signer from the configured signing key, falling back to a dev key outside production.
+     * Create a signer from the configured signing key.
+     *
+     * Fails closed: the built-in development key is used only when the environment is
+     * explicitly a development or testing one. Any other environment, including an unset
+     * one, must configure a key of at least MIN_KEY_LENGTH characters.
      *
      * @return self
      */
     public static function fromConfig(): self
     {
-        $configured = Config::get('ripple.security.signing_key')
-            ?? Config::get('app.key')
-            ?? (function_exists('env') ? env('APP_KEY') : null);
+        $key = self::firstKey(
+            Config::get('ripple.security.signing_key'),
+            Config::get('app.key'),
+            function_exists('env') ? env('APP_KEY') : null,
+        );
 
-        $key = is_string($configured) ? $configured : '';
-        if ($key === '' || $key === 'ripple-dev-key') {
-            if (self::isProduction()) {
+        $isDev = self::isDevelopment();
+
+        if ($key === '' || $key === self::DEV_KEY) {
+            if (! $isDev) {
                 throw new \RuntimeException(
-                    'Ripple signing key is not configured. Set RIPPLE_SIGNING_KEY or APP_KEY.',
+                    'Ripple signing key is not configured. Set RIPPLE_SIGNING_KEY or APP_KEY. '
+                    . 'The built-in development key is only used when APP_ENV is one of: '
+                    . implode(', ', self::DEV_ENVIRONMENTS) . '.',
                 );
             }
 
-            return new self('ripple-dev-key');
+            return new self(self::DEV_KEY);
+        }
+
+        if (! $isDev && strlen($key) < self::MIN_KEY_LENGTH) {
+            throw new \RuntimeException(sprintf(
+                'Ripple signing key is too short. Use at least %d characters for RIPPLE_SIGNING_KEY or APP_KEY.',
+                self::MIN_KEY_LENGTH,
+            ));
         }
 
         return new self($key);
     }
 
     /**
-     * Determine whether the application is running in production.
+     * Return the first candidate that is not blank, unchanged, or an empty string.
+     *
+     * An empty RIPPLE_SIGNING_KEY must not hide a real APP_KEY behind it.
+     *
+     * @param mixed ...$candidates
+     * @return string
+     */
+    private static function firstKey(mixed ...$candidates): string
+    {
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && trim($candidate) !== '') {
+                return $candidate;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Determine whether the application is explicitly running in a development or testing environment.
+     *
+     * An unset or unrecognised environment counts as deployed, so it never gets the public dev key.
      *
      * @return bool
      */
-    private static function isProduction(): bool
+    private static function isDevelopment(): bool
     {
         $env = Config::get('app.env')
-            ?? (function_exists('env') ? env('APP_ENV') : null)
-            ?? 'local';
+            ?? (function_exists('env') ? env('APP_ENV') : null);
 
-        return in_array(strtolower((string) $env), ['production', 'prod'], true);
+        if (! is_string($env)) {
+            return false;
+        }
+
+        return in_array(strtolower(trim($env)), self::DEV_ENVIRONMENTS, true);
     }
 
     /**

@@ -4,6 +4,7 @@ namespace Doppar\Ripple\Tests\Unit;
 
 use Doppar\Ripple\ComponentManager;
 use Doppar\Ripple\Routing\RippleRouter;
+use Doppar\Ripple\State\StateSigner;
 use Doppar\Ripple\Tests\Fixtures\CounterComponent;
 use Doppar\Ripple\Tests\Fixtures\PageComponent;
 use Doppar\Ripple\Tests\TestCase;
@@ -13,7 +14,7 @@ final class PageRoutingTest extends TestCase
 {
     public function test_resolve_layout_from_attribute(): void
     {
-        $manager = new ComponentManager();
+        $manager = new ComponentManager(signer: new StateSigner('page-routing-key'));
         $method = new ReflectionMethod(ComponentManager::class, 'resolveLayout');
 
         $this->assertSame('ripple::layouts.app', $method->invoke($manager, PageComponent::class));
@@ -21,7 +22,7 @@ final class PageRoutingTest extends TestCase
 
     public function test_resolve_layout_falls_back_to_config_default(): void
     {
-        $manager = new ComponentManager();
+        $manager = new ComponentManager(signer: new StateSigner('page-routing-key'));
         $method = new ReflectionMethod(ComponentManager::class, 'resolveLayout');
 
         $this->assertSame('ripple::layouts.app', $method->invoke($manager, CounterComponent::class));
@@ -29,7 +30,7 @@ final class PageRoutingTest extends TestCase
 
     public function test_resolve_title_from_attribute(): void
     {
-        $manager = new ComponentManager();
+        $manager = new ComponentManager(signer: new StateSigner('page-routing-key'));
         $method = new ReflectionMethod(ComponentManager::class, 'resolveTitle');
 
         $this->assertSame('Page Fixture', $method->invoke($manager, PageComponent::class));
@@ -37,7 +38,7 @@ final class PageRoutingTest extends TestCase
 
     public function test_resolve_title_falls_back_to_short_class_name(): void
     {
-        $manager = new ComponentManager();
+        $manager = new ComponentManager(signer: new StateSigner('page-routing-key'));
         $method = new ReflectionMethod(ComponentManager::class, 'resolveTitle');
 
         $this->assertSame('Counter', $method->invoke($manager, CounterComponent::class));
@@ -88,7 +89,7 @@ final class PageRoutingTest extends TestCase
 
     public function test_mount_includes_data_ripple_for_page_component(): void
     {
-        $html = (new ComponentManager())->mount(PageComponent::class);
+        $html = (new ComponentManager(signer: new StateSigner('page-routing-key')))->mount(PageComponent::class);
 
         $this->assertStringContainsString('data-ripple', $html);
         $this->assertStringContainsString('data-page-body', $html);
