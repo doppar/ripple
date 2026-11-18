@@ -13,7 +13,7 @@ final class ComponentHydrator
      *
      * @param StateSigner $signer
      */
-    public function __construct(private readonly StateSigner $signer = new StateSigner('ripple-dev-key'))
+    public function __construct(private readonly StateSigner $signer)
     {
     }
 
