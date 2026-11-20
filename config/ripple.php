@@ -81,7 +81,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | signing_key: HMAC key for state signatures. Falls back to APP_KEY when
-    |              null. Prefer a dedicated RIPPLE_SIGNING_KEY in production.
+    |              null or empty. Prefer a dedicated RIPPLE_SIGNING_KEY in
+    |              production. Must be at least 32 characters. A built-in
+    |              development key is used only when APP_ENV is local,
+    |              development, dev, testing or test; any other (or unset)
+    |              APP_ENV without a key refuses to boot.
     |
     | verify_state:
     |   - "strict"            → verify signature on every update (default)
