@@ -79,6 +79,11 @@ final class ComponentManagerTest extends TestCase
                 {
                     return $key === '_token' ? 'test-csrf' : $default;
                 }
+
+                public function token(): string
+                {
+                    return 'test-csrf';
+                }
             });
 
             $html = $this->manager->scripts();
@@ -105,6 +110,11 @@ final class ComponentManagerTest extends TestCase
                 {
                     return $key === '_token' ? 'test-csrf' : $default;
                 }
+
+                public function token(): string
+                {
+                    return 'test-csrf';
+                }
             });
             $harness->instance(ComponentManager::class, $this->manager);
 
@@ -125,6 +135,11 @@ final class ComponentManagerTest extends TestCase
                 public function get(mixed $key, mixed $default = null): mixed
                 {
                     return $default;
+                }
+
+                public function token(): ?string
+                {
+                    return null;
                 }
             });
 
