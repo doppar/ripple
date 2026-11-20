@@ -80,11 +80,9 @@ final class ComponentManagerTest extends TestCase
                     return $key === '_token' ? 'test-csrf' : $default;
                 }
 
-                public function token(): ?string
+                public function token(): string
                 {
-                    $value = $this->get('_token');
-
-                    return is_string($value) ? $value : null;
+                    return 'test-csrf';
                 }
             });
 
@@ -113,11 +111,9 @@ final class ComponentManagerTest extends TestCase
                     return $key === '_token' ? 'test-csrf' : $default;
                 }
 
-                public function token(): ?string
+                public function token(): string
                 {
-                    $value = $this->get('_token');
-
-                    return is_string($value) ? $value : null;
+                    return 'test-csrf';
                 }
             });
             $harness->instance(ComponentManager::class, $this->manager);
@@ -143,9 +139,7 @@ final class ComponentManagerTest extends TestCase
 
                 public function token(): ?string
                 {
-                    $value = $this->get('_token');
-
-                    return is_string($value) ? $value : null;
+                    return null;
                 }
             });
 
